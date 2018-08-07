@@ -10,8 +10,8 @@ import sys
 
 """ 
 @author:yueyao 
-@file: RNAref.py 
-@time: 2018/05/15
+@file: Transcript_Assembly.py 
+@time: 2018/08/07
 """
 
 
@@ -57,11 +57,50 @@ class common(object):
             rawdict[j[1]] = [j[2], j[3]]
         return rawdict
 
+class buildindex(common):
+    def __init__(self):
+        super(buildindex, self).__init__()
+        self.parameter = "-p 8"
+        self.hisat2=""
+        self.program=self.hisat2+"/"
+
+        self.outdir = "Transcript_Assembly/Index_Hisat2"
+
+    def makeCommand(self, inputfq):
+
+        os.makedirs(self.outdir, mode=0o755, exist_ok=True)
+
+        cmd=[]
+        output=[]
+        buildindexshell="{hisat2} {ref} {outdir}/genomeindex {parameter};".format(
+            hisat2=self.program,
+            ref=self.ref,
+            outdir=self.outdir,
+            parameter=self.parameter
+        )
+        output.append(self.outdir+"/genomeindex.1.ht2")
+        cmd.append(buildindexshell)
+
+        return cmd,output
+
+    def makedefault(self, inputfq):
+        input=self.ref
+        output=self.outdir+"/genomeindex.1.ht2"
+
+        default={
+            'input':input,
+            'parameter':self.parameter,
+            'program':self.program,
+            'resource':"1G,1CPU",
+            'output':output
+        }
+        return default
+
 class filter(common):
 
     def __init__(self):
         super(filter, self).__init__()
-        self.parameter = "-l 15 -q 0.2 -n 0.05 -i -Q 1 -5 0 -c 0.1 " \
+        self.parameter = "-l 15 -q 0.2 -n 0.05 -i -Q 1 -5 0" \
                          "-f AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -r AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA "
         self.soapnuke = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/software/SOAPnuke"
         self.fqcheck = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/software/fqcheck"
@@ -201,6 +240,10 @@ class alignment(common):
         filter_para.species=self.species
         filter_para.fqLink = self.fqLink
         filter_para.outdir=self.outdir.replace("GenomeMapping_HISAT","Filter_SOAPnuke")
+        buildindex_o=buildindex()
+        buildindex_o.species=self.species
+        buildindex_o.outdir=self.outdir.replace("GenomeMapping_HISAT","Index_Hisat2")
+        ref_index=buildindex_o.outdir+"/genomeindex"
         CleanDataDict=inputfq[0]
 
         cmd=[]
@@ -224,7 +267,7 @@ class alignment(common):
                     hisat2=self.hisat2,
                     java=self.java,
                     picard=self.picard,
-                    ref=self.ref,
+                    ref=ref_index,
                     hisat2_para=self.parameter,
                     fq1=cleanFqA,fq2=cleanFqB,samtools=self.samtools,
                     outdir=self.outdir,sampleid=SampleID
@@ -393,7 +436,7 @@ class interface(common):
 
     def __init__(self):
         common.__init__(self)
-        self.step = [["filter"],["alignment"],["novel_tr"]]
+        self.step = [["filter","buildindex"],["alignment"],["novel_tr"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
