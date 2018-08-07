@@ -889,8 +889,8 @@ class genediffexp(common):
         super(genediffexp,self).__init__()
         self.parameter = {}
         self.program = "DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffExp/"
-        self.outdir = "RNAdenovo/GeneDiffExp_Allin/"
+        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffExp"
+        self.outdir = "RNAdenovo/GeneDiffExp_Allin"
 
     def makeCommand(self, inputfq):
         gxp = geneexp()
@@ -1081,7 +1081,7 @@ class genediffexp(common):
                         output.append(
                             self.outdir + "/DEseq2/" + sampleA + "-VS-" + sampleB + ".DEseq2_Method.GeneDiffExpFilter.xls")
                 degshell += "{GeneDiffExpBin}/DEseq2.pl -list {Samplelist} -diff {CompareList} -group {Grouplist} " \
-                           "{deg_para} -outdir +{outdir}\n".format(
+                           "{deg_para} -outdir {outdir}\n".format(
                     GeneDiffExpBin=self.scriptbin,
                     Samplelist=explist,
                     CompareList=compare_list,
@@ -1176,7 +1176,7 @@ class genediffexp(common):
         gxp = geneexp()
         gxp.species=self.species
         gxp.fqLink=self.fqLink
-        gxp.outdir=self.outdir.replace("GeneDiffExp_Allin/","GeneExp/")
+        gxp.outdir=self.outdir.replace("GeneDiffExp_Allin","GeneExp/")
         ExpDict = gxp.makedefault(inputfq)["output"][1]
         output=[]
 
@@ -1888,7 +1888,7 @@ class tf(common):
                      "echo -e \"gene_id\\tEnsembl ID\\tFamily\\twebsite\" >{outdir}/Animal_TF_result.xls;" \
                      "for i in `ls {scriptbin}/Animal-TF-tab/*xls`;do awk -F\'\\t\' \'{{print $2\"\\t\"$(NF-1)\"\\t\"$NF}}\' $i; " \
                      "done|sort|uniq|awk -F\'\\t\' \'NR==FNR{{a[$1]=$0;next}}{{split($2,array,/:/);if (array[1] in a) print $1\"\\t\"a[array[1]];else if(array[2] in a) print $1\"\\t\"a[array[2]]}}\' - {outdir}/denovo_tf_best_result.outfmt6 >{outdir}/Animal_TF_result.xls;" \
-                     "python {scriptbin}/animal_tf.py --tf Animal_TF_result.xls |sed \"1i TF_family\\tNumber of Genes\\tGenes\" >All-Unigene.TF2Gene.xls; " \
+                     "/usr/bin/python {scriptbin}/animal_tf.py --tf {outdir}/Animal_TF_result.xls |sed \"1i TF_family\\tNumber of Genes\\tGenes\" >{outdir}/All-Unigene.TF2Gene.xls; " \
                      "{Rscript} {scriptbin}/draw_bar.R {outdir}/All-Unigene.TF2Gene.xls {outdir}/All-Unigene.TF_family.pdf;" \
                      "{convert} -density 300 -resize 30% {outdir}/All-Unigene.TF_family.pdf {outdir}/All-Unigene.TF_family.png;" \
                      "perl {scriptbin}/TF_heatmap.R.pl {All_GeneExpression_FPKM} {outdir}/Animal_TF_result.xls {outdir}".format(
@@ -1994,7 +1994,10 @@ class prg(common):
         output = []
 
         if self.parameter["Annotation_dbClass"] == "an":
-            prg_sh +="#You don't need to do this step!"
+            prg_sh +="#You don't need to do this step!;" \
+                    "touch {outdir}/Unigene2PRG.result.xls".format(
+                    outdir=self.outdir
+            )
         elif self.parameter["Annotation_dbClass"] == "pl":
             prg_sh += "ln -sf {unigene} {outdir}/reference.fa;" \
                      "grep \'>\' {unigene} |sed \'s/>//g\'|awk \'{{print $1\"\\t\"$1}}\' > {outdir}/reference.gene2tr;" \
@@ -2009,7 +2012,10 @@ class prg(common):
                 scriptbin=self.scriptbin,
             )
         elif self.parameter["Annotation_dbClass"] == "fg":
-            prg_sh += "#You don't need to do this step!"
+            prg_sh += "#You don't need to do this step!;" \
+                      "touch {outdir}/Unigene2PRG.result.xls".format(
+                        outdir=self.outdir
+            )
         else:
             sys.exit(1)
         cmd.append(prg_sh)
