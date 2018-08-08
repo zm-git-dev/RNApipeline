@@ -61,8 +61,8 @@ class buildindex(common):
     def __init__(self):
         super(buildindex, self).__init__()
         self.parameter = "-p 8"
-        self.hisat2=""
-        self.program=self.hisat2+"/"
+        self.hisat2="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/hisat2-2.0.4/"
+        self.program=self.hisat2+"/hisat2"
 
         self.outdir = "Transcript_Assembly/Index_Hisat2"
 
@@ -107,7 +107,6 @@ class filter(common):
         self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Filter/"
         self.program=[self.soapnuke,self.fqcheck]
         self.outdir = "Transcript_Assembly/Filter_SOAPnuke"
-
 
     def makeCommand(self, inputfq):
         SampleList= self.prepare_lib()
@@ -262,7 +261,8 @@ class alignment(common):
                 hisat2shell+="cd {sampledir}; {hisat2}/hisat2 {hisat2_para} -x {ref} -1 {fq1} -2 {fq2} " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {sampledir}/{sampleid}.bam - ;" \
-                             "{java} -Xmx4G -Djava.io.tmpdir=java_tmp -jar {picard}/SortSam.jar I={sampleid}.bam O={sampleid}.Sort.bam SO=coordinate VALIDATION_STRINGENCY=SILENT\n".format(
+                             "{java} -Xmx4G -Djava.io.tmpdir=java_tmp -jar {picard}/SortSam.jar " \
+                             "I={sampleid}.bam O={sampleid}.Sort.bam SO=coordinate VALIDATION_STRINGENCY=SILENT\n".format(
                     sampledir=sampledir,
                     hisat2=self.hisat2,
                     java=self.java,
@@ -287,10 +287,13 @@ class alignment(common):
                 hisat2shell += "cd {sampledir}; {hisat2}/hisat2 {hisat2_para} -x {ref} -1 {fq1} " \
                                "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                                "{samtools} view -b -S -o {sampledir}/{sampleid}.bam - " \
-                               "{java} -Xmx4G -Djava.io.tmpdir=java_tmp -jar {picard}/SortSam.jar I={sampleid}.bam O={sampleid}.Sort.bam SO=coordinate VALIDATION_STRINGENCY=SILENT\n".format(
+                               "{java} -Xmx4G -Djava.io.tmpdir=java_tmp -jar {picard}/SortSam.jar " \
+                               "I={sampleid}.bam O={sampleid}.Sort.bam SO=coordinate VALIDATION_STRINGENCY=SILENT\n".format(
                     sampledir=sampledir,
+                    picard=self.picard,
+                    java=self.java,
                     hisat2=self.hisat2,
-                    ref=self.ref,
+                    ref=ref_index,
                     hisat2_para=self.parameter,
                     fq1=cleanFq, samtools=self.samtools,
                     outdir=self.outdir, sampleid=SampleID
