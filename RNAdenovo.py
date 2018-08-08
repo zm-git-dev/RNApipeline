@@ -2051,8 +2051,8 @@ class prg(common):
 class interface(common):
     def __init__(self):
         common.__init__(self)
-        self.step = [["filter"], ["trinity_assemble"], ["geneexp","annotation","cds_predict","ssr","snp"], ["genediffexp"], ["goenrichment", "pathwayenrichment","ppi","tf"]]
-        # self.step = [["annotation"],["genediffexp"], ["goenrichment", "pathwayenrichment", "ppi","prg","tf"]]
+        # self.step = [["filter"], ["trinity_assemble"], ["geneexp","annotation","cds_predict","ssr","snp"], ["genediffexp"], ["goenrichment", "pathwayenrichment","ppi","tf"]]
+        self.step = [["tf"]]
 
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)

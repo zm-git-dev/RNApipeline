@@ -65,11 +65,11 @@ class filter(common):
 
     def __init__(self):
         super(filter, self).__init__()
-        self.parameter = "-l 15 -q 0.2 -n 0.05 -i -Q 1 -5 0  -c 2 " \
+        self.parameter = "-l 15 -q 0.2 -n 0.05 -i -Q 1 -5 0  -c 0.2 " \
                          "-f AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -r AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA "
         self.soapnuke = self.getsoftware().SOAPNUKE
         self.fqcheck = self.getsoftware().FQCHECK
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Filter/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Filter"
         self.program=[self.soapnuke,self.fqcheck]
         self.outdir = "RNAseq/Filter_SOAPnuke"
 
@@ -197,7 +197,7 @@ class alignment(common):
         self.samtools=soft.SAMTOOLS
         self.program=[self.hisat2,self.samtools]
 
-        self.outdir = "RNAseq/GenomeMapping_HISAT/"
+        self.outdir = "RNAseq/GenomeMapping_HISAT"
 
     def makeCommand(self, inputfq):
         filter_para = filter()
@@ -255,7 +255,6 @@ class alignment(common):
         else:
             logging.warning("Your Library Fastq File maybe some ERROR!")
             sys.exit(1)
-        # print (cmd)
         return cmd, output
 
     def makedefault(self, inputfq):
@@ -317,7 +316,7 @@ class geneexp(common):
         self.rsem_calculate_expression=soft.RSEM+"/rsem-calculate-expression"
         self.program=[self.bowtie2,self.samtools,self.rsempreparereference,self.rsem_calculate_expression]
 
-        self.outdir="RNAseq/GeneExp/"
+        self.outdir="RNAseq/GeneExp"
 
     def makeCommand(self,inputfq):
         filter_para = filter()
@@ -462,7 +461,7 @@ class genediffexp(common):
         super(genediffexp,self).__init__()
         self.parameter={}
         self.program="DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffExp/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneDiffExp/"
         self.outdir="RNAseq/GeneDiffExp_Allin/"
 
     def makeCommand(self, inputfq):
@@ -745,7 +744,7 @@ class genediffexp(common):
 
     def makedefault(self,inputfq):
 
-        gxp = geneexp() #由于这里是新实例化一个对象，故这个实例的属性是继承了common的值，但是common初始值为空，事实上当运行至这一步是genediffexp.species的值会是传进来的值
+        gxp = geneexp()
         gxp.fqLink=self.fqLink
         gxp.species=self.species
         gxp.outdir=self.outdir.replace("GeneDiffExp_Allin","GeneExp")
@@ -906,7 +905,7 @@ class goenrichment(common):
         soft = self.getsoftware()
 
         self.outdir="RNAseq/GO_Hypergeometric/GO"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment"
 
         self.parameter={
             "Gene2Tr":"",
@@ -916,7 +915,7 @@ class goenrichment(common):
             "gene2go":"",
             "accession2go":""
         }
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment/go.pl"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/go.pl"
 
     def makeCommand(self,inputfq):
         deg=genediffexp()
@@ -935,7 +934,7 @@ class goenrichment(common):
 
         for diff_list in GeneDiffExpFilter:
             diff_id = ".".join(os.path.basename(diff_list).split('.')[0:2])
-            go_shell+="export PATH=/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2015a/software/perl-V5/bin:$PATH; " \
+            go_shell+="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH; " \
                      "awk '{{if($5>0) print $1\"\\t\"$5\"\\tup\";else print $1\"\\t\"$5\"\\tdown\"}}'" \
                      " {diff_list} >{tmpdir}/{keyname}.glist; " \
                      "perl {scriptbin}/drawGO.pl -list {tmpdir}/{keyname}.glist -goclass {goclass} " \
@@ -1013,8 +1012,8 @@ class pathwayenrichment(common):
             "kegg_fa":""
         }
 
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment/"
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment/pathfind.pl"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/pathfind.pl"
 
     def makeCommand(self,inputfq):
         deg=genediffexp()
@@ -1109,8 +1108,8 @@ class wgcna(common):
             "WeightThreshold":0.9,
             "NodesNumThreshold":1000
         }
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/GeneCoExpression/bin/WGCNA.pl"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/GeneCoExpression/bin/"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin/WGCNA.pl"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin/"
         self.outdir = "RNAseq/GeneCoExpression_WGCNA"
 
     def makeCommand(self,inputfq):
@@ -1157,7 +1156,7 @@ class wgcna(common):
         input=[]
         input.append(Expdict)
         output=[]
-        if len(Expdict.keys()) >=q6:
+        if len(Expdict.keys()) >=6:
             output.append(self.outdir + "/CytoscapeInput-edges.txt")
             output.append(self.outdir + "/Coexpression.network1.pdf")
             output.append(self.outdir + "/Modules_heatmap.pdf")
