@@ -1901,6 +1901,9 @@ class tf(common):
                 scriptbin=self.scriptbin,
                 db=db
             )
+            output.append(self.outdir + "/TF_heatmap.png")
+            output.append(self.outdir + "/All-Unigene.TF2Gene.xls")
+            output.append(self.outdir + "/All-Unigene.TF_family.png")
         elif self.parameter["Annotation_dbClass"] == "pl":
             tf_sh += "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{scriptbin}/../software;" \
                      "{getorf} -minsize 150 -sequence {unigene} -outseq {outdir}/All-Unigene.orf;" \
@@ -1917,15 +1920,16 @@ class tf(common):
                 scriptbin=self.scriptbin,
                 getorf=self.getorf
             )
+            output.append(self.outdir + "/TF_heatmap.png")
+            output.append(self.outdir + "/All-Unigene.TF2Gene.xls")
+            output.append(self.outdir + "/All-Unigene.TFCodingGene.xls")
+            output.append(self.outdir + "/All-Unigene.TF_family.png")
         elif self.parameter["Annotation_dbClass"] == "fg":
             pass
         else:
             sys.exit(1)
         cmd.append(tf_sh)
-        output.append(self.outdir+"/TF_heatmap.png")
-        output.append(self.outdir+"/All-Unigene.TF2Gene.xls")
-        output.append(self.outdir+"/All-Unigene.TFCodingGene.xls")
-        output.append(self.outdir+"/All-Unigene.TF_family.png")
+
 
         return cmd,output
 
@@ -1949,12 +1953,18 @@ class tf(common):
 
         input.append(all_unigene_fa)
         input.append(all_trans_fpkm)
-
-        output.append(self.outdir+"/TF_heatmap.png")
-        output.append(self.outdir+"/All-Unigene.TF2Gene.xls")
-        output.append(self.outdir+"/All-Unigene.TFCodingGene.xls")
-        output.append(self.outdir+"/All-Unigene.TF_family.png")
-
+        if self.parameter["Annotation_dbClass"] == "an":
+            output.append(self.outdir + "/TF_heatmap.png")
+            output.append(self.outdir + "/All-Unigene.TF2Gene.xls")
+            output.append(self.outdir + "/All-Unigene.TF_family.png")
+        elif self.parameter["Annotation_dbClass"] == "pl":
+            output.append(self.outdir+"/TF_heatmap.png")
+            output.append(self.outdir+"/All-Unigene.TF2Gene.xls")
+            output.append(self.outdir+"/All-Unigene.TFCodingGene.xls")
+            output.append(self.outdir+"/All-Unigene.TF_family.png")
+        else:
+            print ("Your db set is error!")
+            os._exit(1)
         default={
             'input': input,
             'parameter': self.parameter,
