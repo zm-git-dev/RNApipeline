@@ -193,7 +193,7 @@ class alignment(common):
 
         self.parameter=" --phred64 --sensitive --no-discordant --no-mixed -I 1 -X 1000 -p 8 "
 
-        self.hisat2=soft.HISAT2
+        self.hisat2=soft.HISAT2+"/hisat2"
         self.samtools=soft.SAMTOOLS
         self.program=[self.hisat2,self.samtools]
 
@@ -223,7 +223,7 @@ class alignment(common):
                 hisat2shell+="{hisat2}/hisat2 {hisat2_para} -x {genome_index} -1 {fq1} -2 {fq2} " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {outdir}/{sampleid}.bam -\n".format(
-                    hisat2=  self.hisat2,
+                    hisat2=self.hisat2,
                     hisat2_para=self.parameter,
                     genome_index=self.ref,
                     fq1=cleanFqA,fq2=cleanFqB,samtools=self.samtools,
@@ -415,7 +415,7 @@ class geneexp(common):
         filter_para = filter()
         filter_para.species=self.species
         filter_para.fqLink=self.fqLink
-        filter_para.outdir = self.outdir.replace("GeneExp/", "Filter_SOAPnuke")
+        filter_para.outdir = self.outdir.replace("GeneExp", "Filter_SOAPnuke")
         filter_output = filter_para.makedefault(inputfq)["output"]
         CleanDataDict=filter_output[0]
 
@@ -475,28 +475,6 @@ class genediffexp(common):
         output=[]
         degshell=""
 
-        for i_key,line in self.fqLink.items():
-            if line[0] == line[1]:
-                self.program="DEGseq,PossionDis"
-                self.parameter = {
-                    "DEGseq_VS": "",
-                    "DEGseq_Filter": "-foldChange 2 -qValue 0.01",
-                    "PossionDis_VS": "",
-                    "PossionDis_Filter": "-log2 1 -fdr 0.001",
-                }
-            else:
-                self.program="DEseq2,NOIseq,EBseq"
-                self.parameter={
-                    "DEseq2_Group": "",
-                    "DEseq2_VS": "",
-                    "DEseq2_Filter": "-log2 1 -padj 0.05",
-                    "EBseq_Group": "",
-                    "EBseq_VS": "",
-                    "EBseq_Filter": "-log2 1 -ppee 0.05",
-                    "NOIseq_Group": "",
-                    "NOIseq_VS": "",
-                    "NOIseq_Filter": "-log2 1 -p 0.8",
-                }
         deg_methods = self.program.split(',')
 
         # self.fqLink #[A,A01,FQ1,FQ2,B]
@@ -927,15 +905,14 @@ class goenrichment(common):
         cmd=[]
         output=[]
         GODict={}
-        go_shell=""
+        go_shell="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH; "
 
         go_tmpdir=self.outdir+"/tmp_file"
         os.makedirs(go_tmpdir, mode=0o755, exist_ok=True)
 
         for diff_list in GeneDiffExpFilter:
             diff_id = ".".join(os.path.basename(diff_list).split('.')[0:2])
-            go_shell+="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH; " \
-                     "awk '{{if($5>0) print $1\"\\t\"$5\"\\tup\";else print $1\"\\t\"$5\"\\tdown\"}}'" \
+            go_shell+="awk '{{if($5>0) print $1\"\\t\"$5\"\\tup\";else print $1\"\\t\"$5\"\\tdown\"}}'" \
                      " {diff_list} >{tmpdir}/{keyname}.glist; " \
                      "perl {scriptbin}/drawGO.pl -list {tmpdir}/{keyname}.glist -goclass {goclass} " \
                      "-goprefix {prefix} -outprefix {outdir}/{keyname};".format(
@@ -950,7 +927,7 @@ class goenrichment(common):
             GODict[diff_id] = [self.outdir + "/" + diff_id + "_C.txt", self.outdir + "/" + diff_id + "_F.txt",
                                self.outdir + "/" + diff_id + "_P.txt"]
         go_shell+="perl {scriptbin}/go.pl -gldir {tmpdir} -sdir `dirname {prefix}` -species `basename {prefix}` -outdir {outdir};" \
-                  "perl {scriptbin}/topGO.pl -gldir {tmpdir} -godir {outdir} -outdir {outdir} -prefix {prefix}  -list {gene2tr} -outdir {outdir}".format(
+                  "perl {scriptbin}/topGO.pl -gldir {tmpdir} -godir {outdir} -prefix {prefix}  -list {gene2tr} -outdir {outdir}".format(
             tmpdir=go_tmpdir,
             prefix=self.parameter["GO_Prefix"],
             scriptbin=self.scriptbin,
