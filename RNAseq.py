@@ -6,6 +6,8 @@ import logging
 import os
 import re
 import sys
+import subprocess
+import argparse
 
 from DataBasePath import DataBasePath
 
@@ -23,7 +25,7 @@ class common(object):
         self.outdirMain = os.path.abspath('.')
         self.PEorSE="PE"
         self.ref = ""
-        self.species = {}
+        self.species = {"RNAseq":["an"]}
         self.fqList = []
         self.fqLink = {}
 
@@ -1156,6 +1158,21 @@ class interface(common):
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
+    def runlocal(self,outputfile=None):
+        outdir = self.outdirMain
+        os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
+        try:
+            for stepL in self.step:
+                for step in stepL:
+                    localcommand="sh %s" %(outdir+"/shell/" +step+".sh")
+                    submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
+                    if (submit.returncode == 0):
+                        print ("%s complete" %(step))
+                    else:
+                        sys.exit(1)
+        except IOError as e:
+            raise e
+
     def makeshell(self, outputfile=None):
         outputjson = self.output
         outdir = self.outdirMain
@@ -1222,7 +1239,38 @@ class interface(common):
             raise e
         return jsondict
 
+
+def loadFqList(self, fqList):
+    if fqList is None:
+        # logging.info("fqlist is not defined; please use makejson to make a json and modified the input.then use the inputjson parameter to load the setting.")
+        self.check = 1
+        return ["test_1.fq.gz", "test_2.fq.gz"], {'a': ["1", "2", "3", "4"]}
+    else:
+        try:
+            lines = open(fqList, mode='r').readlines()
+        except IOError as e:
+            raise e
+        stat = {}
+        fq = []
+        for line in lines:
+            linep = line.split()
+            fq1 = linep[2]
+            fq1base = os.path.basename(fq1)
+            fq1prefix = re.sub(r'_\d\..*$', r'', fq1base)
+            stat[fq1prefix] = linep
+            fq += [linep[2], linep[3]]
+        return stat, fq
+
 if __name__=="__main__":
+    if len(sys.argv) == 1 :
+        sys.exit()
+    parser = argparse.ArgumentParser(description="pipeline annotator help")
+    parser.add_argument('--fqlist',dest='fqList',type=str,help="the list file that could contain five column: sampleID libraryID fq1path fq2path [specieA,specieB].[] means optional. species will used in RNAseq commparison test.")
+    parser.add_argument('--genomefa',dest='genomeFa',type=str,help="the genome fa used in workflow.\n HG19:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg19/hg19.fasta\n HG38:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg38/hg38.fa")
+    parser.add_argument('--species',dest='species',type=str,help="set species name where needed. format: augustus:A,genewise:B,C,D,fgene:E,F. A will used in augustus,BCD will used in genwise and so on.")
+    parser.add_argument('--outdir',dest='outdir',type=str,default=pwd,help='the output directory,default current directory')
+    localeArg=parser.parse_args()
 
     a = interface()
     a.makeshell()
+    a.runlocal()
