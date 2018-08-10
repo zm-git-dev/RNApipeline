@@ -69,7 +69,7 @@ class filter(common):
                          "-f AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -r AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA "
         self.soapnuke = self.getsoftware().SOAPNUKE
         self.fqcheck = self.getsoftware().FQCHECK
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Filter/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/Filter"
         self.program=[self.soapnuke,self.fqcheck]
         self.outdir = "RNAdenovo/Filter_SOAPnuke"
 
@@ -193,7 +193,7 @@ class trinity_assemble(common):
         self.program=soft.TRINITY
         self.parameter="--seqType fq --max_memory 10G --min_contig_length 250  --CPU 8 --min_kmer_cov 3 --min_glue 3 --bfly_opts '-V 5 --edge-thr=0.1 --stderr'"
         self.outdir="RNAdenovo/Denovo_Trinity"
-        self.scriptbin="/ldfssz1/ST_BIGDATA/USER/yueyao/bin"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/Denovo"
 
     def makeCommand(self,inputfq):
         CleanDataDict=inputfq[0]
@@ -210,11 +210,12 @@ class trinity_assemble(common):
         leftfq=",".join(fq1_list)
         rightfq=",".join(fq2_list)
 
-        cmd+="cd {outdir};{trinity} {parameter} --left {fq1_list} --right {fq2_list} --output {outdir}/Trinity; " \
-                      "ln -s {outdir}/Trinity/Trinity.fasta Unigene.fa; " \
-                      "/ldfssz1/ST_BIGDATA/USER/yueyao/bin/miniconda2/bin/python {scriptbin}/extract_longest_isform.py Unigene.fa All ;" \
-                      "perl {scriptbin}/fishInWinter.pl -bf table -ff fasta All_Unigene_id.txt Unigene.fa >Temp.Unigene.fa; " \
-                      "perl -lane 'if(/(>.*c\d+_g\d+)(_i\d+)\slen/){{print $1}}else{{print}}' Temp.Unigene.fa >All-Unigene.fa; " \
+        cmd+="cd {outdir};" \
+             "{trinity} {parameter} --left {fq1_list} --right {fq2_list} --output {outdir}/Trinity; " \
+             "ln -s {outdir}/Trinity/Trinity.fasta Unigene.fa; " \
+             "/ldfssz1/ST_BIGDATA/USER/yueyao/bin/miniconda2/bin/python {scriptbin}/extract_longest_isform.py Unigene.fa All ;" \
+             "perl {scriptbin}/fishInWinter.pl -bf table -ff fasta All_Unigene_id.txt Unigene.fa >Temp.Unigene.fa; " \
+             "perl -lane 'if(/(>.*c\d+_g\d+)(_i\d+)\slen/){{print $1}}else{{print}}' Temp.Unigene.fa >All-Unigene.fa; " \
              "perl {scriptbin}/get_Trinity_gene_to_trans_map.pl Unigene.fa >All-Unigene.gene2mark;" \
              "rm Temp.Unigene.fa;".format(
 
@@ -256,7 +257,7 @@ class annotation(common):
         self.outdir="RNAdenovo/Annotation_Blast"
         self.parameter={
             "Annotation_Method" :"Diamond",
-            "Annotation_Options":"--evalue 1e-5 ",
+            "Annotation_Options":"--evalue 1e-5",
             "Annotation_split":2,
             "Annotation_db":"nr,nt,swissprot,go,kegg,kog",
             "Annotation_dbClass":"pl"
@@ -265,19 +266,14 @@ class annotation(common):
         self.diamond=self.getsoftware().DIAMOND
         self.blastp=self.getsoftware().BLASTP
         self.blastn=self.getsoftware().BLASTN
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/Annotation/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/Annotation"
         self.program = [self.diamond, self.blastn, self.blastp]
 
     def makeCommand(self,inputfq):
         cmd=[]
         output=[]
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
-        trinity_o = trinity_assemble()
-        trinity_o.species = self.species
-        trinity_o.outdir=self.outdir.replace("Annotation_Blast", "Denovo_Trinity")
         Unigene=inputfq
-        spe = trinity_o.species["RNAdenovo"][0]
-        self.parameter["Annotation_dbClass"] = spe
 
         split_fasta_path=self.outdir+'/split_fasta'
         os.makedirs(split_fasta_path,mode=0o755, exist_ok=True)
@@ -317,7 +313,7 @@ class annotation(common):
             if db_val == "nt":
                 nt_path = self.outdir + '/nt'
                 os.makedirs(nt_path, mode=0o755, exist_ok=True)
-                blast_cmd += "{blastn} -dust no {parameter} -num_threads  8 -db {nt_db} -query {unigene} " \
+                blast_cmd += "{blastn} -dust no {parameter} -num_threads 5 -db {nt_db} -query {unigene} " \
                          "-out {outdir}/All-Unigene.fa.blast.nt -outfmt 5 \n".format(
                     blastn=self.blastn,
                     parameter=self.parameter["Annotation_Options"].replace("-","",1),
@@ -340,7 +336,7 @@ class annotation(common):
                 os.makedirs(nr_path, mode=0o755, exist_ok=True)
                 for i in range(1, num):
                     blast_cmd+="{diamond} blastx {parameter} -d {nr_db} -q {split_fa} " \
-                             "-o {nr_outdir}/All-Unigene.fa.{num}.blast.nr --threads 3 --outfmt  5 " \
+                             "-o {nr_outdir}/All-Unigene.fa.{num}.blast.nr --threads 5 --outfmt  5 " \
                              "--seg no   --max-target-seqs 5 --more-sensitive -b 0.2 --salltitles;" \
                              "cat {nr_outdir}/All-Unigene.fa.{num}.blast.nr >>{outdir}/All-Unigene.fa.blast.nr\n".format(
 
@@ -366,7 +362,7 @@ class annotation(common):
                 os.makedirs(swissprot_path,mode=0o755,exist_ok=True)
                 for i in range(1, num):
                     blast_cmd+="{diamond} blastx {parameter} -d {nr_db} -q {split_fa} " \
-                             "-o {outdir}/All-Unigene.fa.{num}.blast.swissprot --threads 3 --outfmt  6 " \
+                             "-o {outdir}/All-Unigene.fa.{num}.blast.swissprot --threads 5 --outfmt  6 " \
                              "--seg no   --max-target-seqs 5 --more-sensitive -b 0.2 --salltitles\n".format(
 
                         diamond=self.diamond,
@@ -394,7 +390,7 @@ class annotation(common):
                 os.makedirs(self.outdir+'/All-Unigene.fa_map',mode=0o755, exist_ok=True)
                 for i in range(1, num):
                     blast_cmd+="{diamond} blastx {parameter} -d {nr_db} -q {split_fa} " \
-                             "-o {outdir}/All-Unigene.fa.{num}.blast.kegg --threads 3 --outfmt  6 " \
+                             "-o {outdir}/All-Unigene.fa.{num}.blast.kegg --threads 5 --outfmt  6 " \
                              "--seg no   --max-target-seqs 5 --more-sensitive -b 0.2 --salltitles\n".format(
 
                         diamond=self.diamond,
@@ -410,7 +406,7 @@ class annotation(common):
                                    "perl {scriptbin}/get_annot_info.pl -tophit 5 -topmatch 1 -id {kegg_id} -input " \
                                    "{outdir}/All-Unigene.fa.blast.kegg -out {outdir}/All-Unigene.fa.blast.kegg.xls;" \
                                    "perl {scriptbin}/blast2ko.pl -input {Unigene} -output {outdir}/All-Unigene.fa.ko -blastout {outdir}/All-Unigene.fa.blast.kegg -kegg {kegg_db};" \
-                                   "perl {scriptbin}/pathfind.pl -kegg {kegg_db} -maptitle {maptitle} -komap {komap} -fg {outdir}/All-Unigene.fa.ko {outdir}/All-Unigene.fa.ko -output {outdir}/All-Unigene.fa.path;" \
+                                   "perl {scriptbin}/pathfind.pl -kegg {kegg_db} -maptitle {maptitle} -komap {komap} -fg {outdir}/All-Unigene.fa.ko -output {outdir}/All-Unigene.fa.path;" \
                                    "perl {scriptbin}/keggMap_nodiff.pl -komap {komap} -mapdir {mapdir} -ko {outdir}/All-Unigene.fa.ko -outdir {outdir}/All-Unigene.fa_map;" \
                                    "perl {scriptbin}/genPathHTML.pl -indir {outdir};" \
                                    "perl {scriptbin}/unigene.drawKEGG.pl -path {outdir}/All-Unigene.fa.path -outprefix {outdir}/All-Unigene.fa -idCol 3 -level1Col 4 -level2Col 5 -geneCol 6\n".format(
@@ -431,7 +427,7 @@ class annotation(common):
                 os.makedirs(kog_path, mode=0o755, exist_ok=True)
                 for i in range(1, num):
                     blast_cmd+="{diamond} blastx {parameter} -d {nr_db} -q {split_fa} " \
-                             "-o {outdir}/All-Unigene.fa.{num}.blast.kog --threads 3 --outfmt  6 " \
+                             "-o {outdir}/All-Unigene.fa.{num}.blast.kog --threads 5 --outfmt  6 " \
                              "--seg no --max-target-seqs 5 --more-sensitive -b 0.2 --salltitles\n".format(
 
                         diamond=self.diamond,
@@ -460,7 +456,7 @@ class annotation(common):
                 os.makedirs(cog_path, mode=0o755, exist_ok=True)
                 for i in range(1, num):
                     blast_cmd+="{diamond} blastx {parameter} -d {cog_db} -q {split_fa} " \
-                             "-o {outdir}/All-Unigene.fa.{num}.blast.cog --threads 3 --outfmt  6 " \
+                             "-o {outdir}/All-Unigene.fa.{num}.blast.cog --threads 5 --outfmt  6 " \
                              "--seg no   --max-target-seqs 5 --more-sensitive -b 0.2 --salltitles\n".format(
 
                         diamond=self.diamond,
@@ -530,7 +526,7 @@ class annotation(common):
         output.append(self.outdir+"/annotation.xls")
         output.append(self.outdir + "/annotation_stat.xls")
         output.append(self.outdir+ "/rna_data/species.ko")
-        output.append(self.outdir + "/species.[CFP]")
+        output.append(self.outdir + "/species.C")
         return cmd,output
 
     def makedefault(self,inputfq):
@@ -620,8 +616,7 @@ class cds_predict(common):
         self.diamond=self.getsoftware().DIAMOND
         self.hmmscan=self.getsoftware().HMMSCAN
         self.transdecoder=self.getsoftware().TRANSDECODER
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/CDSpredict/../Denovo/"
-        self.scriptbin2="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/CDSpredict/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/CDSpredict"
         self.parameter={
             "Annotation_Options":"--evalue  1e-5  --threads 5  --seg no --max-target-seqs 1 --more-sensitive -b 0.5 --salltitles ",
             "Annotation_dbClass":"pl"
@@ -650,7 +645,7 @@ class cds_predict(common):
                 pfam=dbclass.PFAM,
                 outdir=self.outdir
             )
-            cds_shell+="{program}/TransDecoder.Predict -t {Unigene} --retain_pfam_hits {outdir}/pfam.domtblout --retain_blastp_hits {outdir}/blastp.outfmt6;".format(
+            cds_shell+="/usr/bin/perl {program}/TransDecoder.Predict -t {Unigene} --retain_pfam_hits {outdir}/pfam.domtblout --retain_blastp_hits {outdir}/blastp.outfmt6;".format(
                 program=self.transdecoder,
                 Unigene=Unigene,
                 outdir=self.outdir
@@ -658,9 +653,8 @@ class cds_predict(common):
 
             cds_shell +="perl {0}/fa_quality.pl -len -Head -N -gc {1}/All-Unigene.fa.transdecoder.cds;".format(self.scriptbin,self.outdir)
             cds_shell +="perl {0}/barplot.pl {1}/All-Unigene.fa.transdecoder.cds.quality.xls  All-Unigene.fa.cds;".format(self.scriptbin,self.outdir)
-            cds_shell +="perl {scriptbin2}/Fasta_stat.pl {outdir}/All-Unigene.fa.transdecoder.cds 2>{outdir}/PredictSummary.xls".format(
+            cds_shell +="perl {scriptbin}/Fasta_stat.pl {outdir}/All-Unigene.fa.transdecoder.cds 2>{outdir}/PredictSummary.xls".format(
                 scriptbin=self.scriptbin,
-                scriptbin2=self.scriptbin2,
                 outdir=self.outdir
             )
             output.append(self.outdir+"/All-Unigene.fa.transdecoder.cds")
@@ -678,7 +672,7 @@ class cds_predict(common):
                 pfam=dbclass.PFAM,
                 outdir=self.outdir
             )
-            cds_shell+="{program}/TransDecoder.Predict -t {Unigene} --retain_pfam_hits {outdir}/pfam.domtblout --retain_blastp_hits {outdir}/blastp.outfmt6;".format(
+            cds_shell+="/usr/bin/perl {program}/TransDecoder.Predict -t {Unigene} --retain_pfam_hits {outdir}/pfam.domtblout --retain_blastp_hits {outdir}/blastp.outfmt6;".format(
                 program=self.transdecoder,
                 Unigene=Unigene,
                 outdir=self.outdir
@@ -686,9 +680,8 @@ class cds_predict(common):
 
             cds_shell +="perl {0}/fa_quality.pl -len -Head -N -gc {1}/All-Unigene.fa.transdecoder.cds;".format(self.scriptbin,self.outdir)
             cds_shell +="perl {0}/barplot.pl {1}/All-Unigene.fa.transdecoder.cds.quality.xls  All-Unigene.fa.cds;".format(self.scriptbin,self.outdir)
-            cds_shell +="perl {scriptbin2}/Fasta_stat.pl {outdir}/All-Unigene.fa.transdecoder.cds 2>{outdir}/PredictSummary.xls".format(
+            cds_shell +="perl {scriptbin}/Fasta_stat.pl {outdir}/All-Unigene.fa.transdecoder.cds 2>{outdir}/PredictSummary.xls".format(
                 scriptbin=self.scriptbin,
-                scriptbin2=self.scriptbin2,
                 outdir=self.outdir
             )
             output.append(self.outdir+"/All-Unigene.fa.transdecoder.cds")
@@ -721,13 +714,13 @@ class geneexp(common):
 
     def __init__(self):
         super(geneexp,self).__init__()
-        self.outdir= "RNAdenovo/GeneExp/"
+        self.outdir= "RNAdenovo/GeneExp"
         self.parameter = "-q --phred64 --sensitive --dpad 0 --gbar 99999999 --mp 1,1 --np 1 --score-min L,0,-0.1 -I 1 -X 1000 --no-mixed --no-discordant  -p 1 -k 200"
-        self.rsempreparereference=self.getsoftware().RSEM+"/rsem-prepare-reference"
+        self.rsempreparereference=self.getsoftware().RSEM+"rsem-prepare-reference"
         self.rsem_calculate_expression=self.getsoftware().RSEM+"rsem-calculate-expression"
         self.samtools = self.getsoftware().SAMTOOLS
         self.bowtie2 = self.getsoftware().BOWTIE2
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/GeneExp/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/GeneExp"
         self.program = [self.samtools,self.bowtie2,self.rsempreparereference]
 
     def makeCommand(self,inputfq):
@@ -738,12 +731,9 @@ class geneexp(common):
         BamDict = {}
         ExpDict = {}
         rsemshell=""
-        trinity_o = trinity_assemble()
-        trinity_o.outdir=self.outdir.replace("GeneExp/","Denovo_Trinity/")
 
         refmrna = inputfq[0]
         gene2mark= inputfq[1]
-
         CleanDataDict=inputfq[2]
 
         stat_shell=""
@@ -834,12 +824,12 @@ class geneexp(common):
 
     def makedefault(self,inputfq):
         trinity_o = trinity_assemble()
-        trinity_o.outdir=self.outdir.replace("GeneExp/","Denovo_Trinity/")
+        trinity_o.outdir=self.outdir.replace("GeneExp","Denovo_Trinity")
         refmrna = trinity_o.makedefault(inputfq)["output"][1]
         gene2mark= trinity_o.makedefault(inputfq)["output"][2]
 
         filter_o = filter()
-        filter_o.outdir=self.outdir.replace("GeneExp/","Filter_SOAPnuke")
+        filter_o.outdir=self.outdir.replace("GeneExp","Filter_SOAPnuke")
         filter_o.fqLink=self.fqLink
         filter_o.species=self.species
         CleanDataDict=filter_o.makedefault(inputfq)["output"][0]
@@ -889,14 +879,10 @@ class genediffexp(common):
         super(genediffexp,self).__init__()
         self.parameter = {}
         self.program = "DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffExp"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/GeneDiffExp"
         self.outdir = "RNAdenovo/GeneDiffExp_Allin"
 
     def makeCommand(self, inputfq):
-        gxp = geneexp()
-        gxp.species=self.species
-        gxp.fqLink=self.fqLink
-        gxp.outdir = self.outdir.replace("GeneDiffExp_Allin", "GeneExp")
         ExpDict = inputfq
 
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
@@ -904,28 +890,6 @@ class genediffexp(common):
         output=[]
         degshell=""
 
-        for i_key,line in self.fqLink.items():
-            if line[0] == line[1]:
-                self.program="DEGseq,PossionDis"
-                self.parameter = {
-                    "DEGseq_VS": "",
-                    "DEGseq_Filter": "-foldChange 2 -qValue 0.001",
-                    "PossionDis_VS": "",
-                    "PossionDis_Filter": "-log2 1 -fdr 0.001",
-                }
-            else:
-                self.program="DEseq2,NOIseq,EBseq"
-                self.parameter={
-                    "DEseq2_Group": "",
-                    "DEseq2_VS": "",
-                    "DEseq2_Filter": "-log2 1 -padj 0.05",
-                    "EBseq_Group": "",
-                    "EBseq_VS": "",
-                    "EBseq_Filter": "-log2 1 -ppee 0.05",
-                    "NOIseq_Group": "",
-                    "NOIseq_VS": "",
-                    "NOIseq_Filter": "-log2 1 -p 0.8",
-                }
         deg_methods = self.program.split(',')
 
         for type in deg_methods:
@@ -1049,10 +1013,10 @@ class genediffexp(common):
                         compare_list.write(
                             control + '\t' + ExpDict[control] + '\n' + treat + '\t' + ExpDict[treat] + '\n')
 
-                degshell += "{GeneDiffExpBin}/DEGseq.pl  -list {CompareList} -diff {diffcom} -GeneIDColumn 1 -GeneExpColumn 4 " \
+                degshell += "perl {scriptbin}/DEGseq.pl  -list {CompareList} -diff {diffcom} -GeneIDColumn 1 -GeneExpColumn 4 " \
                            "-GeneLenColumn 3 -method MARS -threshold 5 -pValue 1e-3 " \
                            "-zScore 4 {deg_para} -outdir {outdir}\n".format(
-                    GeneDiffExpBin="/ldfssz1/ST_BIGDATA/USER/yueyao/bin",
+                    scriptbin=self.scriptbin,
                     CompareList=CompareList,
                     deg_para=self.parameter["DEGseq_Filter"],
                     outdir=self.outdir + "DEGseq",
@@ -1080,7 +1044,7 @@ class genediffexp(common):
                         compare.write(tmpdict[sampleA] + "\t" + tmpdict[sampleB] + "\n")
                         output.append(
                             self.outdir + "/DEseq2/" + sampleA + "-VS-" + sampleB + ".DEseq2_Method.GeneDiffExpFilter.xls")
-                degshell += "{GeneDiffExpBin}/DEseq2.pl -list {Samplelist} -diff {CompareList} -group {Grouplist} " \
+                degshell += "perl {GeneDiffExpBin}/DEseq2.pl -list {Samplelist} -diff {CompareList} -group {Grouplist} " \
                            "{deg_para} -outdir {outdir}\n".format(
                     GeneDiffExpBin=self.scriptbin,
                     Samplelist=explist,
@@ -1110,7 +1074,7 @@ class genediffexp(common):
                         compare.write(tmpdict[sampleA] + "\t" + tmpdict[sampleB] + "\n")
                         output.append(
                             self.outdir + "/EBseq/" + sampleA + "-VS-" + sampleB + ".EBseq_Method.GeneDiffExpFilter.xls")
-                degshell += "{GeneDiffExpBin}/EBseq.pl -list {Samplelist} -diff {CompareList} -group {Grouplist} " \
+                degshell += "perl {GeneDiffExpBin}/EBseq.pl -list {Samplelist} -diff {CompareList} -group {Grouplist} " \
                            " {deg_para} -outdir {outdir}\n".format(
                     GeneDiffExpBin=self.scriptbin,
                     Samplelist=explist,
@@ -1162,7 +1126,7 @@ class genediffexp(common):
                             control + '\t' + ExpDict[control] + '\n' + treat + '\t' + ExpDict[treat] + '\n')
                         output.append(
                             self.outdir + "/DEseq2/" + control + "-VS-" + treat + ".PossionDis_Method.GeneDiffExpFilter.xls")
-                degshell += "{GeneDiffExpBin}/PossionDis.pl  -list {CompareList}  {deg_para}  -outdir {outdir}\n".format(
+                degshell += "perl {GeneDiffExpBin}/PossionDis.pl  -list {CompareList}  {deg_para}  -outdir {outdir}\n".format(
                     GeneDiffExpBin=self.scriptbin,
                     CompareList=CompareList,
                     deg_para=self.parameter["PossionDis_Filter"],
@@ -1176,7 +1140,7 @@ class genediffexp(common):
         gxp = geneexp()
         gxp.species=self.species
         gxp.fqLink=self.fqLink
-        gxp.outdir=self.outdir.replace("GeneDiffExp_Allin","GeneExp/")
+        gxp.outdir=self.outdir.replace("GeneDiffExp_Allin","GeneExp")
         ExpDict = gxp.makedefault(inputfq)["output"][1]
         output=[]
 
@@ -1330,7 +1294,7 @@ class goenrichment(common):
     def __init__(self):
         super(goenrichment,self).__init__()
         self.outdir = "RNAdenovo/GO_Hypergeometric/GO"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/Enrichment"
 
         self.parameter = {
             "Annotation_dbClass": "pl"
@@ -1339,28 +1303,12 @@ class goenrichment(common):
         self.program = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment/go2.pl"
 
     def makeCommand(self,inputfq):
-        deg=genediffexp()
-        deg.outdir=self.outdir.replace("GO_Hypergeometric/GO","GeneDiffExp_Allin/")
-        deg.species=self.species
-        deg.fqLink=self.fqLink
         GeneDiffExpFilter = inputfq[0]
-
-        annotation_o = annotation()
-        annotation_o.outdir=self.outdir.replace("GO_Hypergeometric/GO","Annotation_Blast")
-        annotation_o.species=self.species
-        annotation_o.fqLink=self.fqLink
         Annotation=inputfq[1]
         prefix_name=os.path.basename(Annotation).split('.')[0]
         prefix_path = os.path.split(Annotation)[0]
         GO_prefix = prefix_path+"/"+prefix_name
-        trinity_o = trinity_assemble()
-        trinity_o.outdir = self.outdir.replace("GO_Hypergeometric/GO","Denovo_Trinity/")
-        trinity_o.species=self.species
-        trinity_o.fqLink=self.fqLink
-
         Gene2Tr = inputfq[2]
-
-        self.parameter["Annotation_dbClass"] = deg.species["RNAdenovo"][0]
 
         if self.parameter["Annotation_dbClass"] == "pl":
             dbclass = DataBasePath(dbclass="pl")
@@ -1383,7 +1331,7 @@ class goenrichment(common):
 
         for diff_list in GeneDiffExpFilter:
             diff_id = ".".join(os.path.basename(diff_list).split('.')[0:2])
-            go_shell+="export PATH=/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2015a/software/perl-V5/bin:$PATH; " \
+            go_shell+="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin/:$PATH; " \
                      "awk '{{if($5>0) print $1\"\\t\"$5\"\\tup\";else print $1\"\\t\"$5\"\\tdown\"}}'" \
                      " {diff_list} >{tmpdir}/{keyname}.glist; " \
                      "perl {scriptbin}/drawGO.pl -list {tmpdir}/{keyname}.glist -goclass {goclass} " \
@@ -1422,7 +1370,7 @@ class goenrichment(common):
         annotation_o.fqLink=self.fqLink
         GO_Annotation = annotation_o.makedefault(inputfq)["output"][-1]
         trinity_o = trinity_assemble()
-        trinity_o.outdir = self.outdir.replace("GO_Hypergeometric/GO","Denovo_Trinity/")
+        trinity_o.outdir = self.outdir.replace("GO_Hypergeometric/GO","Denovo_Trinity")
         trinity_o.species=self.species
         trinity_o.fqLink=self.fqLink
         Gene2Tr = trinity_o.makedefault(inputfq)["output"][-1]
@@ -1456,20 +1404,12 @@ class pathwayenrichment(common):
         self.parameter = {
             "Annotation_dbClass":"pl"
         }
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment"
-        self.program = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment/pathfind.pl"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/Enrichment"
+        self.program = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/Enrichment/pathfind.pl"
 
     def makeCommand(self,inputfq):
-
-        deg=genediffexp()
-        deg.fqLink=self.fqLink
-        deg.species=self.species
-        deg.outdir=self.outdir.replace("RNAdenovo/Pathway_Hypergeometric/Pathway","RNAdenovo/GeneDiffExp_Allin")
-
         GeneDiffExpFilter=inputfq[0]
         bg_ko = inputfq[1]
-
-        self.parameter["Annotation_dbClass"] = deg.species["RNAdenovo"][0]
 
         kegg_tmpdir = self.outdir + "/tmp_file"
         os.makedirs(kegg_tmpdir,mode=0o755, exist_ok=True)
@@ -1566,29 +1506,23 @@ class ppi(common):
     def __init__(self):
         super(ppi, self).__init__()
         self.outdir = "RNAdenovo/PPI_Interaction"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/PPI/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/PPI"
 
         self.parameter = {
             "Annotation_dbClass": "pl"
         }
         self.convert=self.getsoftware().CONVERT
         self.diamond=self.getsoftware().DIAMOND
-        self.ppi="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/PPI/../PPI/RNA_DENOVO_PPI.py"
-        self.R = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/PPI/../software/R-3.2.5/bin/Rscript"
+        self.ppi="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/PPI/RNA_DENOVO_PPI.py"
+        self.R = self.getsoftware().RSCRIPT325
         self.program=[self.convert,self.diamond,self.R,self.ppi]
 
 
     def makeCommand(self, inputfq):
-        deg = genediffexp()
-        deg.species=self.species
-        deg.fqLink=self.fqLink
-        deg.outdir=self.outdir.replace("PPI_Interaction","GeneDiffExp_Allin")
 
         GeneDiffExpFilter = inputfq[0]
         annotation_xls = inputfq[2]
         Unigene = inputfq[1]
-
-        self.parameter["Annotation_dbClass"] = deg.species["RNAdenovo"][0]
 
         if self.parameter["Annotation_dbClass"] == "pl":
             dbclass = DataBasePath(dbclass="pl")
@@ -1682,7 +1616,7 @@ class snp(common):
     def __init__(self):
         super(snp, self).__init__()
         self.outdir = "RNAdenovo/SNP_GATK"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/SNP/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/SNP"
 
         self.parameter = {
             "Annotation_dbClass": "pl"
@@ -1696,7 +1630,7 @@ class snp(common):
         self.samtools=self.getsoftware().SAMTOOLS
         self.picard=self.getsoftware().PICARD
         self.diamond=self.getsoftware().DIAMOND
-        self.R="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/PPI/../software/R-3.2.5/bin/Rscript"
+        self.R=self.getsoftware().RSCRIPT325
         self.program = [self.gatk,self.java18,self.java,self.hisat2,self.hisat_build,self.samtools,self.picard,self.diamond,self.R]
 
     def makeCommand(self,inputfq):
@@ -1809,7 +1743,7 @@ class snp(common):
         depth_file=",".join(depth_list)
         snp_population_stat_shell ="{perl} {scriptbin}/snp_population.pl -snp {snp_file} -depth {depth_file} -outdir {outdir}".format(
             scriptbin=self.scriptbin,
-            perl="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/SNP/../software/perl/perl",
+            perl="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin/perl",
             snp_file=snp_file,
             depth_file=depth_file,
             outdir=self.outdir
@@ -1825,7 +1759,7 @@ class snp(common):
         trinity_o = trinity_assemble()
         trinity_o.species = self.species
         trinity_o.fqLink = self.fqLink
-        trinity_o.outdir = self.outdir.replace("SNP_GATK", "Denovo_Trinity/")
+        trinity_o.outdir = self.outdir.replace("SNP_GATK", "Denovo_Trinity")
         Unigene = trinity_o.makedefault(inputfq)["output"][0]
 
         filter_o = filter()
@@ -1848,7 +1782,7 @@ class snp(common):
             'input': input,
             'parameter': self.parameter,
             'program': self.program,
-            'resource': "15G,10CPU",
+            'resource': "18G,1CPU",
             'output': output
         }
         return default
@@ -1867,14 +1801,13 @@ class tf(common):
             "Annotation_dbClass": "pl"
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/TF"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/TF"
 
     def makeCommand(self, inputfq):
 
         all_unigene_fa = inputfq[0]
         all_gene_exp=inputfq[-1]
         os.makedirs(self.outdir, mode=0o775, exist_ok=True)
-        self.parameter["Annotation_dbClass"] = self.species["RNAdenovo"][0]
         database = DataBasePath(dbclass=self.parameter["Annotation_dbClass"])
 
         tf_sh = ""
@@ -1907,7 +1840,7 @@ class tf(common):
         elif self.parameter["Annotation_dbClass"] == "pl":
             tf_sh += "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{scriptbin}/../software;" \
                      "{getorf} -minsize 150 -sequence {unigene} -outseq {outdir}/All-Unigene.orf;" \
-                     "perl {scriptbin}/../Annotation/select_orf.pl -seq {unigene} -input {outdir}/All-Unigene.orf -output {outdir}/All-Unigene.pep;" \
+                     "perl {scriptbin}/select_orf.pl -seq {unigene} -input {outdir}/All-Unigene.orf -output {outdir}/All-Unigene.pep;" \
                      "perl {scriptbin}/TFCodingGene_Predict.pl {outdir}/All-Unigene.pep All-Unigene {outdir};" \
                      "perl {scriptbin}/TF_heatmap.R.pl {All_GeneExpression_FPKM} {outdir}/All-Unigene.TFCodingGene.xls {outdir};" \
                      "".format(
@@ -1986,7 +1919,7 @@ class prg(common):
             "Annotation_dbClass": "pl"
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/PRG/bin/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/PRG/bin"
 
     def makeCommand(self, inputfq):
 
@@ -1994,9 +1927,6 @@ class prg(common):
 
         os.makedirs(self.outdir, mode=0o775, exist_ok=True)
 
-        self.parameter["Annotation_dbClass"] = self.species["RNAdenovo"][0]
-
-        spe=self.species
         database = DataBasePath(dbclass=self.parameter["Annotation_dbClass"])
 
         prg_sh = ""
@@ -2004,8 +1934,7 @@ class prg(common):
         output = []
 
         if self.parameter["Annotation_dbClass"] == "an":
-            prg_sh +="#You don't need to do this step!;" \
-                    "touch {outdir}/Unigene2PRG.result.xls".format(
+            prg_sh +="echo \"#Your sample is animal, you don't need to run this step.\" >{outdir}/Unigene2PRG.result.xls".format(
                     outdir=self.outdir
             )
         elif self.parameter["Annotation_dbClass"] == "pl":
@@ -2022,8 +1951,7 @@ class prg(common):
                 scriptbin=self.scriptbin,
             )
         elif self.parameter["Annotation_dbClass"] == "fg":
-            prg_sh += "#You don't need to do this step!;" \
-                      "touch {outdir}/Unigene2PRG.result.xls".format(
+            prg_sh += "echo \"#Your sample is fg, you don't need to run this step.\" >{outdir}/Unigene2PRG.result.xls".format(
                         outdir=self.outdir
             )
         else:
@@ -2038,7 +1966,6 @@ class prg(common):
         trinity_o.fqLink=self.fqLink
         trinity_o.outdir=self.outdir.replace("PRG_Blastx","Denovo_Trinity")
         all_unigene_fa = trinity_o.makedefault(inputfq)["output"][0]
-
 
         input=[]
         output=[]
@@ -2062,7 +1989,7 @@ class interface(common):
     def __init__(self):
         common.__init__(self)
         # self.step = [["filter"], ["trinity_assemble"], ["geneexp","annotation","cds_predict","ssr","snp"], ["genediffexp"], ["goenrichment", "pathwayenrichment","ppi","tf"]]
-        self.step = [["tf"]]
+        self.step = [["tf","prg"]]
 
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
