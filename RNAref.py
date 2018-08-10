@@ -72,10 +72,9 @@ class filter(common):
                          "-f AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -r AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA "
         self.soapnuke = self.getsoftware().SOAPNUKE
         self.fqcheck = self.getsoftware().FQCHECK
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Filter/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Filter"
         self.program=[self.soapnuke,self.fqcheck]
         self.outdir = "RNAref/Filter_SOAPnuke"
-
 
     def makeCommand(self, inputfq):
         SampleList= self.prepare_lib()
@@ -203,20 +202,15 @@ class alignment(common):
 
         self.program=[self.samtools,self.java,self.picard,self.hisat2]
 
-        self.outdir = "RNAref/GenomeMapping_HISAT/"
+        self.outdir = "RNAref/GenomeMapping_HISAT"
 
     def makeCommand(self, inputfq):
-        filter_para = filter()
-        filter_para.species=self.species
-        filter_para.fqLink = self.fqLink
-        filter_para.outdir=self.outdir.replace("GenomeMapping_HISAT","Filter_SOAPnuke")
         CleanDataDict=inputfq[0]
 
-        spe=filter_para.species
+        spe=self.species
         database = DataBasePath()
         database.get_config(species=spe["RNAref"][0])
         hisat_index=database.HISAT_INDEX
-
 
         cmd=[]
         output=[]
@@ -354,17 +348,14 @@ class novel_tr(common):
         self.diamond=self.getsoftware().DIAMOND
         self.cpc=self.getsoftware().CPC
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/NovelTr/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/NovelTr"
         self.program = [self.diamond,self.cpc,self.cufflinks,self.stringtie]
 
-        self.gtf="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_version5.0_beta/Database/hg19/Annotation/hg19_filter.psl.gtf"
-        self.pep = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_version5.0_beta/Database/hg19/CPC_format/HUMAN.protein.fa"
+        self.gtf = ""
+        self.pep = ""
 
     def makeCommand(self,inputfq):
 
-        alignment_o = alignment()
-        alignment_o.fqLink = self.fqLink
-        alignment_o.species=self.species
         BamDict=inputfq
 
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
@@ -378,7 +369,7 @@ class novel_tr(common):
         reconstruct_shell = ""
         num = self.parameter["Annotation_split"]
 
-        spe=alignment_o.species
+        spe=self.species
         database = DataBasePath()
         database.get_config(species=spe["RNAref"][0])
 
@@ -399,7 +390,7 @@ class novel_tr(common):
 
         gtflist = open(self.outdir+"/Prediction/"+"gtf.list",'w')
         for SampleID,BamPath in BamDict.items():
-            reconstruct_shell += "{stringtie} {bam_path} -G {gtf_file} -o {outdir}/{sampleid}.stringtie.gtf.tmp -f 0.3 -j 3 -c 5 -g 100 -s 10000 -p 8;" \
+            reconstruct_shell += "{stringtie} {bam_path} -G {gtf_file} -o {outdir}/{sampleid}.stringtie.gtf.tmp -f 0.3 -j 3 -c 5 -g 100 -p 5;" \
                                  "{scriptbin}/CorrectGTF.pl {ref} {outdir}/{sampleid}.stringtie.gtf.tmp {outdir}/{sampleid}.stringtie.gtf\n" \
                                  "".format(
                 stringtie=self.stringtie,
@@ -414,7 +405,7 @@ class novel_tr(common):
 
         gtflist.close()
 
-        cuffmerge_cpc_shell="{cufflinks}/cuffmerge -g {gtf_file} -s {ref} -o {outdir}/Prediction/cuffmerge -p 12 {gtf_list};" \
+        cuffmerge_cpc_shell="{cufflinks}/cuffmerge -g {gtf_file} -s {ref} -o {outdir}/Prediction/cuffmerge -p 5 {gtf_list};" \
                             "perl {scriptbin}/getNovelTr_gtf.pl -input {outdir}/Prediction/cuffmerge/merged.gtf -output {outdir}/Prediction/novel_transcript.gtf;" \
                             "{cufflinks}/gffread -g {ref} -w {outdir}/Prediction/novel_transcript.fa {outdir}/Prediction/novel_transcript.gtf;" \
                             "sh {cpc} {outdir}/Prediction/novel_transcript.fa {outdir}/Prediction/cpc/novel_transcript.check {outdir}/Prediction/cpc {outdir}/Prediction/cpc/novel_transcript.evidence {pep_fa};" \
@@ -437,7 +428,7 @@ class novel_tr(common):
         blast_kegg_go_cmd=""
         for i in range(1, num+1):
             blast_kegg_go_cmd += "{diamond} blastx {parameter} -d {kegg_db} -q {outdir}/Annotation/fasta/novel_coding_transcript.fa.{num} " \
-                         "-o {outdir}/Annotation/fasta/novel_coding_transcript.fa.{num}.blast.kegg --threads 3 --outfmt  6 " \
+                         "-o {outdir}/Annotation/fasta/novel_coding_transcript.fa.{num}.blast.kegg --threads 5 --outfmt  6 " \
                          "--seg no   --max-target-seqs 5 --more-sensitive -b 0.2 --salltitles\n".format(
 
                 diamond=self.diamond,
@@ -486,7 +477,7 @@ class novel_tr(common):
         cmd.append(blast_kegg_go_cmd)
         cmd.append(blast_process_go_ko_cmd)
 
-        output.append(self.outdir+"/Annotation/novel.[CPF]")
+        output.append(self.outdir+"/Annotation/novel.C")
         output.append(self.outdir+"/Annotation/novel.nr.desc")
         output.append(self.outdir+"/Annotation/novel.ko")
         output.append(self.outdir + "/Prediction/novel_coding_transcript.gene2tr")
@@ -517,7 +508,7 @@ class novel_tr(common):
             'input':BamDict,
             'parameter':self.parameter,
             'program':self.program,
-            'resource':"4G,8CPU",
+            'resource':"4G,5CPU",
             'output':output
         }
         return default
@@ -535,11 +526,11 @@ class snpindel(common):
         self.samtools=self.getsoftware().SAMTOOLS
         self.bedtools=self.getsoftware().BEDTOOLS
 
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/SnpIndel/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/SnpIndel"
 
         self.parameter={}
 
-        self.ref="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_version5.0_beta/Database/hg19/GenomeGatkIndex/chrALL.sort.fa"
+        self.ref=""
         self.program=[self.gatk,self.java,self.picard,self.samtools,self.bedtools]
 
     def makeCommand(self,inputfq):
@@ -712,7 +703,7 @@ class geneexp(common):
         self.outdir = "RNAref/GeneExp/"
 
         self.parameter="-q --phred64 --sensitive --dpad 0 --gbar 99999999 --mp 1,1 --np 1 --score-min L,0,-0.1 -I 1 -X 1000 --no-mixed --no-discordant  -p 8 -k 200"
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneExp/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/GeneExp"
 
         self.rsempreparereference=self.getsoftware().RSEM+"/rsem-prepare-reference"
         self.rsemcalculateexpression=self.getsoftware().RSEM+"/rsem-calculate-expression"
@@ -722,19 +713,15 @@ class geneexp(common):
         self.program=[self.rsempreparereference,self.samtools,self.bowtie2]
 
         self.cds=""
-        self.gene2tr="gene2tr"
+        self.gene2tr=""
 
     def makeCommand(self,inputfq):
-        filter_para = filter()
-        filter_para.outdir=self.outdir.replace("","")
-        filter_para.species=self.species
-        filter_para.fqLink=self.fqLink
 
         CleanDataDict = inputfq[0]
         novel_gene2tr= inputfq[1]
         novel_fa = inputfq[2]
 
-        spe=filter_para.species
+        spe=self.species
         database = DataBasePath()
         database.get_config(species=spe["RNAref"][0])
         self.ref=database.GENOME
@@ -927,7 +914,7 @@ class geneexp(common):
             'input': input,
             'parameter': self.parameter,
             'program': self.program,
-            'resource': "1G,1CPU",
+            'resource': "4G,8CPU",
             'output': output
         }
         return default
@@ -938,7 +925,7 @@ class genediffexp(common):
         super(genediffexp,self).__init__()
         self.parameter={}
         self.program="DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffExp/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/GeneDiffExp"
         self.outdir="RNAref/GeneDiffExp_Allin"
 
     def makeCommand(self, inputfq):
@@ -949,28 +936,6 @@ class genediffexp(common):
         output=[]
         degshell=""
 
-        for i_key,line in self.fqLink.items():
-            if line[0] == line[1]:
-                self.program="DEGseq,PossionDis"
-                self.parameter = {
-                    "DEGseq_VS": "",
-                    "DEGseq_Filter": "-foldChange 2 -qValue 0.001",
-                    "PossionDis_VS": "",
-                    "PossionDis_Filter": "-log2 1 -fdr 0.001",
-                }
-            else:
-                self.program="DEseq2,NOIseq,EBseq"
-                self.parameter={
-                    "DEseq2_Group": "",
-                    "DEseq2_VS": "",
-                    "DEseq2_Filter": "-log2 1 -padj 0.05",
-                    "EBseq_Group": "",
-                    "EBseq_VS": "",
-                    "EBseq_Filter": "-log2 1 -ppee 0.05",
-                    "NOIseq_Group": "",
-                    "NOIseq_VS": "",
-                    "NOIseq_Filter": "-log2 1 -p 0.8",
-                }
         deg_methods = self.program.split(',')
 
         for type in deg_methods:
@@ -1104,7 +1069,7 @@ class genediffexp(common):
                             "perl {scriptbin}/drawScatter-plot.pl -indir {outdir} -exp1col 3 -exp2col 4 -udcol 7 -conf {conf} -outdir {outdir};" \
                             "perl {scriptbin}/drawVolcano-plot.pl -Indir {outdir} -log2col 5 -signcol 6 -udcol 7 -xlab \"log2(fold change)\" -ylab=\"-log10(FDR)\" -conf {conf} -outdir {outdir}\n" \
                             .format(
-                    GeneDiffExpBin="/ldfssz1/ST_BIGDATA/USER/yueyao/bin",
+                    GeneDiffExpBin=self.scriptbin,
                     exp=CompareList,
                     conf=degseqconf,
                     scriptbin=self.scriptbin,
@@ -1428,8 +1393,7 @@ class genediffsplice(common):
             "rMATS_VS":""
         }
         self.program=self.getsoftware().RMATS
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffSplice"
-        self.scriptbin2 = "/ldfssz1/ST_BIGDATA/USER/yueyao/bin"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/GeneDiffSplice"
         self.outdir="RNAref/GeneDiffSplice"
 
     def makeCommand(self,inputfq):
@@ -1476,8 +1440,8 @@ class genediffsplice(common):
             control_bam=control_bam.rstrip(',')
             treat_bam=treat_bam.rstrip(',')
 
-            rmats_shell +="export PATH=/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffSplice/../software/Python/bin:$PATH;"
-            rmats_shell +="export PATH=/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffSplice/../software:$PATH;"
+            rmats_shell +="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/GeneDiffSplice/../software/Python/bin:$PATH;"
+            rmats_shell +="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/GeneDiffSplice/../software:$PATH;"
             rmats_shell +="export  LD_LIBRARY_PATH=/share/app/gcc-4.9.3/lib64:$LD_LIBRARY_PATH;"
             rmats_shell +="cat {novel_gtf} {spe_gtf} >{outdir}/{tmpdir}/annot.gtf;" \
                           "python {rmats} -b1 {bam1} -b2 {bam2} -gtf {outdir}/{tmpdir}/annot.gtf {parameter} -len 90 {para} -o {outdir}/{tmpdir}"\
@@ -1495,10 +1459,9 @@ class genediffsplice(common):
 
             dsg_wego_shell +="perl {scriptbin}/parse_rmats_result.pl -indir {outdir}/{tmpdir} -gtf {outdir}/{tmpdir}/annot.gtf  {para} -outdir {result_dir};" \
                              "perl {scriptbin}/merge_go.pl {novel_g2t} {novel_go},{species_go} {outdir}/{tmpdir}/annot/annot;" \
-                             "perl {scriptbin2}/drawGO.pl -indir {result_dir}/{tmpdir} -diff {tmpdir}.A3SS,{tmpdir}.A5SS,{tmpdir}.MXE,{tmpdir}.RI,{tmpdir}.SE -go" \
+                             "perl {scriptbin}/drawGO.pl -indir {result_dir}/{tmpdir} -diff {tmpdir}.A3SS,{tmpdir}.A5SS,{tmpdir}.MXE,{tmpdir}.RI,{tmpdir}.SE -go" \
                              " {outdir}/{tmpdir}/annot/annot -goclass {goclass} -outdir {result_dir}/{tmpdir} -name {tmpdir};".format(
                 scriptbin=self.scriptbin,
-                scriptbin2=self.scriptbin2,
                 outdir=self.outdir,
                 result_dir=self.outdir+"DifferentiallySplicingGene",
                 para=self.parameter["rMATS_Filter"],
@@ -1606,10 +1569,9 @@ class tf(common):
             "Annotation_dbClass": "pl"
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/TF/"
-        self.scriptbin2="/ldfssz1/ST_BIGDATA/USER/yueyao/bin/"
-        self.cds = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_version5.0_beta/Database/hg19/GeneBowtie2Index/refMrna.fa"
-        self.gene2tr = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_version5.0_beta/Database/hg19/Annotation_kegg76/refMrna.fa.gene2mark"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/TF"
+        self.cds = ""
+        self.gene2tr = ""
 
     def makeCommand(self, inputfq):
 
@@ -1646,10 +1608,10 @@ class tf(common):
                      "{getorf} -minsize 150 -sequence {outdir}/reference.fa -outseq {outdir}/reference.orf;" \
                      "perl {scriptbin}/select_orf.pl -seq {outdir}/reference.fa -input {outdir}/reference.orf -output {outdir}/reference.pep;" \
                      "{diamond} blastp --evalue 1e-5 --threads 4 --outfmt 6 -d {db} -q {outdir}/reference.pep -o {outdir}/outfmt6 --seg no --max-target-seqs 1 --more-sensitive -b 0.5 --salltitles;" \
-                     ">{outdir}/result && for i in `ls /ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/TF/Animal-TF-tab/*xls`;do " \
+                     ">{outdir}/result && for i in `ls /ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/TF/Animal-TF-tab/*xls`;do " \
                      "awk -F'\\t' '{{print $2\"\\t\"$(NF-1)\"\\t\"$NF}}' $i;done|sort|uniq|awk -F'\\t' 'NR==FNR{{a[$1]=$0;next}}{{split($2,array,/:/);if (array[1] in a) print $1\"\\t\"a[array[1]];else if(array[2] in a)print $1\"\\t\"a[array[2]]}}' - {outdir}/outfmt6 >>{outdir}/result;" \
                      "sed -r 's/_[0-9]+\\t/\\t/g' {outdir}/result |sort|uniq >{outdir}/Animal_TF_result.xls;" \
-                     "perl {scriptbin2}/get_tf_an.pl {outdir}/Animal_TF_result.xls {deg_dir} {outdir} {outdir}/reference.gene2tr {AllSamples_TranscriptExpression};" \
+                     "perl {scriptbin}/get_tf_an.pl {outdir}/Animal_TF_result.xls {deg_dir} {outdir} {outdir}/reference.gene2tr {AllSamples_TranscriptExpression};" \
                      "perl {scriptbin}/TF_heatmap.R.pl {outdir}/TFheatmap.xls {outdir};" \
                      "{scriptbin}/../software/Rscript {scriptbin}/draw_bar.R {outdir}/All_DEG.TFGene.xls {outdir}/All_DEG.TFGene.pdf;" \
                      "{scriptbin}/../software/convert -density 300 -resize 30% {outdir}/All_DEG.TFGene.pdf {outdir}/All_DEG.TFGene.png;".format(
@@ -1659,7 +1621,6 @@ class tf(common):
                 gene2tr=self.gene2tr,
                 novel_gene2tr=novel_gene2tr,
                 scriptbin=self.scriptbin,
-                scriptbin2=self.scriptbin2,
                 AllSamples_TranscriptExpression=all_trans_fpkm,
                 db=db,
                 getorf=self.getorf,
@@ -1683,7 +1644,6 @@ class tf(common):
                 gene2tr=self.gene2tr,
                 novel_gene2tr=novel_gene2tr,
                 scriptbin=self.scriptbin,
-                scriptbin2=self.scriptbin2,
                 AllSamples_TranscriptExpression=all_trans_fpkm,
                 Rscript=self.rscript,
                 convert=self.convert,
@@ -1743,13 +1703,13 @@ class goenrichment(common):
     def __init__(self):
         super(goenrichment,self).__init__()
         self.outdir = "RNAref/GO_Hypergeometric/GO"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Enrichment"
 
         self.parameter = {
             "Annotation_dbClass": "pl"
         }
 
-        self.program = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment/go.pl"
+        self.program = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Enrichment/go.pl"
 
     def makeCommand(self,inputfq):
         deg=genediffexp()
@@ -1784,7 +1744,7 @@ class goenrichment(common):
         go_tmpdir=self.outdir+"/tmp_file"
         os.makedirs(go_tmpdir, mode=0o755, exist_ok=True)
         os.makedirs(out_dir,mode=0o755, exist_ok=True)
-        go_shell+="export PATH=/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2015a/software/perl-V5/bin:$PATH;" \
+        go_shell+="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH;" \
                       "perl {scriptbin}/merge_gene2tr.pl {novel_g2t},{gene2tr} {tmpdir}/gene2tr;" \
                       "perl {scriptbin}/merge_go.pl {tmpdir}/gene2tr {novel_go},{go_prefix} {tmpdir}/species;".format(
             scriptbin=self.scriptbin,
@@ -1881,8 +1841,8 @@ class pathwayenrichment(common):
             "Annotation_dbClass":"pl"
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment"
-        self.program = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Enrichment/pathfind.pl"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Enrichment"
+        self.program = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Enrichment/pathfind.pl"
 
     def makeCommand(self,inputfq):
         GeneDiffExpFilter = inputfq[0]
@@ -2022,14 +1982,13 @@ class ppi(common):
         self.python=self.getsoftware().PYTHON
         self.convert=self.getsoftware().CONVERT
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/PPI/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/PPI"
 
         self.program = [self.diamond,self.python,self.convert]
 
     def makeCommand(self,inputfq):
 
         database = DataBasePath()
-
         database.get_config(species=self.species["RNAref"][0])
 
         cmd = []
@@ -2140,7 +2099,6 @@ class genefusion(common):
         self.circos=self.getsoftware().CIRCOS
 
         self.program=[self.soapfuse,self.circos]
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneFusion/../software/SOAPfuse/"
 
     def makeCommand(self, inputfq):
         os.makedirs(self.outdir,mode=0o755,exist_ok=True)
@@ -2229,7 +2187,7 @@ class prg(common):
             "Annotation_dbClass": "pl"
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/PRG/bin/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/PRG/bin"
 
     def makeCommand(self, inputfq):
 
@@ -2256,7 +2214,7 @@ class prg(common):
         output = []
 
         if self.parameter["Annotation_dbClass"] == "an":
-            prg_sh +="echo \"You don't need to do this step\" >{0}/prg.log;".format(self.outdir)
+            prg_sh +="echo \"Your sample is not plant. You don't need to do this step\" >{0}/prg.log;".format(self.outdir)
             output.append(self.outdir+"/prg.log")
         elif self.parameter["Annotation_dbClass"] == "pl":
             os.makedirs(self.outdir+"/tmp", mode=0o775, exist_ok=True)
@@ -2340,7 +2298,7 @@ class phi(common):
             "Annotation_dbClass": "fg"
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/PHI/bin/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/PHI/bin"
 
     def makeCommand(self, inputfq):
 
@@ -2367,7 +2325,7 @@ class phi(common):
         output = []
 
         if self.parameter["Annotation_dbClass"] == "an":
-            phi_sh +="echo \"You don't need to do this step, this is for fg\" >{0}/phi.log".format(self.outdir)
+            phi_sh +="echo \"You don't need to do this step, this is for fg.\" >{0}/phi.log".format(self.outdir)
             output.append(self.outdir+"/phi.log")
         elif self.parameter["Annotation_dbClass"] == "fg":
             os.makedirs(self.outdir+"/tmp", mode=0o775, exist_ok=True)
@@ -2376,7 +2334,7 @@ class phi(common):
             phi_sh += "cat {cds} {novel_fa} >{outdir}/reference.fa;" \
                       "cat {cds_gene2tr} {novel_gene2tr} >{outdir}/reference.gene2tr;" \
                       "perl {scriptbin}/get_all_deg.pl {outdir}/reference.fa {deg_dir} {outdir}/degtrseq.fa {outdir}/reference.gene2tr;" \
-                      "{blastx} -query {outdir}/degtrseq.fa -db {phidb} --evalue 1e-5 --threads 6 --outfmt 6 --max-target-seqs 1 --more-sensitive -out {outdir}/degtr2PHI.out;" \
+                      "{blastx} blastx -query {outdir}/degtrseq.fa -db {phidb} --evalue 1e-5 --threads 4 --outfmt 6 --max-target-seqs 1 --more-sensitive -out {outdir}/degtr2PHI.out;" \
                       "perl {scriptbin}/get_PHI.pl -trseq {outdir}/degtrseq.fa -blresult {outdir}/degtr2PHI.out -gene2tr {outdir}/reference.gene2tr -degdir {deg_dir} -cov 50 -iden 40 -output {outdir}"\
                 .format(
                 blastx=self.diamond,
@@ -2456,7 +2414,7 @@ class circos(common):
         self.circos=self.getsoftware().CIRCOS
 
         self.program=[self.soapfuse,self.circos]
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Circos/bin/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/Circos/bin"
 
     def makeCommand(self, inputfq):
         os.makedirs(self.outdir,mode=0o755,exist_ok=True)
@@ -2566,7 +2524,7 @@ class circos(common):
         snpindel_output=snpindel_o.makedefault(inputfq)["output"][0]
 
         geneexp_o = geneexp()
-        geneexp_o.outdir=self.outdir.replace("CircosFig","GeneExp/")
+        geneexp_o.outdir=self.outdir.replace("CircosFig","GeneExp")
         geneexp_o.species=self.species
         geneexp_o.fqLink=self.fqLink
         geneexp_output=geneexp_o.makedefault(inputfq)["output"][1]
@@ -2604,13 +2562,13 @@ class cluster(common):
         super(cluster, self).__init__()
         self.outdir = "RNAref/Clustering_Mfuzz"
 
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_module/Pubscript/TimeCluster/TimeClustering.pl"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/TimeCluster/TimeClustering.pl"
         self.parameter = {
             "Mfuzz_Options":"-c 12 -m 1.25",
             "Mfuzz_plan":""
         }
 
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/TimeCluster/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAref/TimeCluster"
 
     def makeCommand(self, inputfq):
         geneexpdic=inputfq[0]
@@ -2704,7 +2662,7 @@ class cluster(common):
             'input': input,
             'parameter': self.parameter,
             'program': self.program,
-            'resource': "1G,4CPU",
+            'resource': "1G,1CPU",
             'output': output
         }
 
