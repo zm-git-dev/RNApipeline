@@ -989,7 +989,7 @@ class pathwayenrichment(common):
             "kegg_fa":""
         }
 
-        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment"
         self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/pathfind.pl"
 
     def makeCommand(self,inputfq):
@@ -1086,7 +1086,7 @@ class wgcna(common):
             "NodesNumThreshold":1000
         }
         self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin/WGCNA.pl"
-        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin"
         self.outdir = "RNAseq/GeneCoExpression_WGCNA"
 
     def makeCommand(self,inputfq):
@@ -1152,7 +1152,7 @@ class wgcna(common):
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["filter"], ["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
+        self.step = [["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 

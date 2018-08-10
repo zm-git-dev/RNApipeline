@@ -58,7 +58,7 @@ class SoftWare():
     PYTHON="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/Python-2.7.9/bin/python"
     CONVERT="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/convert"
     GETORF="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/getorf"
-    SSR="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2016a/SSR/"
+    SSR="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAdenovo/SSR"
     JAVA="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/jre1.7.0/bin/java"
     JAVA18="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/jre1.8.0_45/bin/java"
     PICARD="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/picard-tools-1.54/"
