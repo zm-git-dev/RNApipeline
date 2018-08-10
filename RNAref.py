@@ -2685,7 +2685,6 @@ class interface(common):
         try:
             out = open(outputjson, mode='w')
             out.write("{\n")
-
             for stepL in self.step:
                 for step in stepL:
                     outshell = open(outdir+"/shell/"+step+".sh", mode='w')
@@ -2704,8 +2703,6 @@ class interface(common):
             out.write("\"outdir\":\"%s\"\n" % (self.outdirMain))
             out.write("}\n")
             out.close()
-
-
         except IOError as e:
             raise e
 
