@@ -6,6 +6,8 @@ import logging
 import os
 import re
 import sys
+import subprocess
+import argparse
 
 from DataBasePath import DataBasePath
 
@@ -25,8 +27,7 @@ class common(object):
         self.ref = ""
         self.species = {}
         self.fqList = []
-        self.fqLink = {
-        }
+        self.fqLink = {}
 
     def makepair(self, inputfq):
         pairArray = []
@@ -66,11 +67,11 @@ class filter(common):
 
     def __init__(self):
         super(filter, self).__init__()
-        self.parameter = "-l 15 -q 0.2 -n 0.05 -i -Q 1 -5 0  -c 2 " \
+        self.parameter = "-l 15 -q 0.2 -n 0.05 -i -Q 1 -5 0  -c 0.2 " \
                          "-f AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC -r AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTA "
         self.soapnuke = self.getsoftware().SOAPNUKE
         self.fqcheck = self.getsoftware().FQCHECK
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/Filter/"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Filter"
         self.program=[self.soapnuke,self.fqcheck]
         self.outdir = "RNAseq/Filter_SOAPnuke"
 
@@ -194,11 +195,11 @@ class alignment(common):
 
         self.parameter=" --phred64 --sensitive --no-discordant --no-mixed -I 1 -X 1000 -p 8 "
 
-        self.hisat2=soft.HISAT2
+        self.hisat2=soft.HISAT2+"/hisat2"
         self.samtools=soft.SAMTOOLS
         self.program=[self.hisat2,self.samtools]
 
-        self.outdir = "RNAseq/GenomeMapping_HISAT/"
+        self.outdir = "RNAseq/GenomeMapping_HISAT"
 
     def makeCommand(self, inputfq):
         filter_para = filter()
@@ -224,7 +225,7 @@ class alignment(common):
                 hisat2shell+="{hisat2}/hisat2 {hisat2_para} -x {genome_index} -1 {fq1} -2 {fq2} " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {outdir}/{sampleid}.bam -\n".format(
-                    hisat2=  self.hisat2,
+                    hisat2=self.hisat2,
                     hisat2_para=self.parameter,
                     genome_index=self.ref,
                     fq1=cleanFqA,fq2=cleanFqB,samtools=self.samtools,
@@ -256,7 +257,6 @@ class alignment(common):
         else:
             logging.warning("Your Library Fastq File maybe some ERROR!")
             sys.exit(1)
-        # print (cmd)
         return cmd, output
 
     def makedefault(self, inputfq):
@@ -318,7 +318,7 @@ class geneexp(common):
         self.rsem_calculate_expression=soft.RSEM+"/rsem-calculate-expression"
         self.program=[self.bowtie2,self.samtools,self.rsempreparereference,self.rsem_calculate_expression]
 
-        self.outdir="RNAseq/GeneExp/"
+        self.outdir="RNAseq/GeneExp"
 
     def makeCommand(self,inputfq):
         filter_para = filter()
@@ -370,7 +370,7 @@ class geneexp(common):
                     samtools=self.samtools,
                     bampath=self.outdir+'/'+SampleID+"/"+SampleID+'.bam',
                     rsem_calculate_expression=self.rsem_calculate_expression,
-					indexdir=self.outdir,
+                    indexdir=self.outdir,
                     outdir=self.outdir+'/'+SampleID,sampleid=SampleID
                 )
                 BamPath="{outDir}/{sampleid}.bam" \
@@ -396,7 +396,7 @@ class geneexp(common):
                     gene_index=self.outdir+"/refMrna.fa",
                     fq1=cleanFq,
                     samtools=self.samtools,
-					indexdir=self.outdir,
+                    indexdir=self.outdir,
                     bampath=self.outdir+'/'+SampleID+"/"+SampleID+'.bam',
                     rsem_calculate_expression=self.rsem_calculate_expression,
                     outdir=self.outdir+"/"+SampleID,sampleid=SampleID
@@ -417,7 +417,7 @@ class geneexp(common):
         filter_para = filter()
         filter_para.species=self.species
         filter_para.fqLink=self.fqLink
-        filter_para.outdir = self.outdir.replace("GeneExp/", "Filter_SOAPnuke")
+        filter_para.outdir = self.outdir.replace("GeneExp", "Filter_SOAPnuke")
         filter_output = filter_para.makedefault(inputfq)["output"]
         CleanDataDict=filter_output[0]
 
@@ -463,7 +463,7 @@ class genediffexp(common):
         super(genediffexp,self).__init__()
         self.parameter={}
         self.program="DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAref/RNA_RNAref_2016a/GeneDiffExp/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneDiffExp"
         self.outdir="RNAseq/GeneDiffExp_Allin/"
 
     def makeCommand(self, inputfq):
@@ -477,126 +477,7 @@ class genediffexp(common):
         output=[]
         degshell=""
 
-        for i_key,line in self.fqLink.items():
-            if line[0] == line[1]:
-                self.program="DEGseq,PossionDis"
-                self.parameter = {
-                    "DEGseq_VS": "",
-                    "DEGseq_Filter": "-foldChange 2 -qValue 0.01",
-                    "PossionDis_VS": "",
-                    "PossionDis_Filter": "-log2 1 -fdr 0.001",
-                }
-            else:
-                self.program="DEseq2,NOIseq,EBseq"
-                self.parameter={
-                    "DEseq2_Group": "",
-                    "DEseq2_VS": "",
-                    "DEseq2_Filter": "-log2 1 -padj 0.05",
-                    "EBseq_Group": "",
-                    "EBseq_VS": "",
-                    "EBseq_Filter": "-log2 1 -ppee 0.05",
-                    "NOIseq_Group": "",
-                    "NOIseq_VS": "",
-                    "NOIseq_Filter": "-log2 1 -p 0.8",
-                }
         deg_methods = self.program.split(',')
-
-        # self.fqLink #[A,A01,FQ1,FQ2,B]
-        for type in deg_methods:
-            if type == "DEGseq":
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["DEGseq_VS"] += control_tmp + "&"+ treat_tmp+","
-                self.parameter["DEGseq_VS"] = self.parameter["DEGseq_VS"].rstrip(",")
-
-            if type == "PossionDis":
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["PossionDis_VS"] += control_tmp + "&"+ treat_tmp+","
-                self.parameter["PossionDis_VS"]= self.parameter["PossionDis_VS"].rstrip(',')
-            if type == "DEseq2":
-                dic_gro = {}
-                for i_key,line in self.fqLink.items():
-                    groid=line[0]
-                    samid=line[1]
-                    if groid in dic_gro.keys():
-                        dic_gro[groid].append(samid)
-                    else:
-                        dic_gro[groid]=[]
-                        dic_gro[groid].append(samid)
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["DEseq2_VS"] += control_tmp + "&"+ treat_tmp+","
-                            con_lis=",".join(dic_gro[control_tmp])
-                            contm=control_tmp+":"+con_lis
-                            tr_lis=",".join(dic_gro[treat_tmp])
-                            trtm=treat_tmp+":"+tr_lis
-                            self.parameter["DEseq2_Group"] = contm +" " +trtm +" "
-                self.parameter["DEseq2_VS"] =self.parameter["DEseq2_VS"].rstrip(',')
-                self.parameter["DEseq2_Group"] =self.parameter["DEseq2_Group"].rstrip(' ')
-            if type == "EBseq":
-                dic_gro = {}
-                for i_key,line in self.fqLink.items():
-                    groid=line[0]
-                    samid=line[1]
-                    if groid in dic_gro.keys():
-                        dic_gro[groid].append(samid)
-                    else:
-                        dic_gro[groid]=[]
-                        dic_gro[groid].append(samid)
-
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["EBseq_VS"] += control_tmp + "&"+ treat_tmp+","
-                            con_lis=",".join(dic_gro[control_tmp])
-                            contm=control_tmp+":"+con_lis
-                            tr_lis=",".join(dic_gro[treat_tmp])
-                            trtm=treat_tmp+":"+tr_lis
-                            self.parameter["EBseq_Group"] = contm +" " +trtm +" "
-                self.parameter["EBseq_VS"] =self.parameter["EBseq_VS"].rstrip(',')
-                self.parameter["EBseq_Group"] = self.parameter["EBseq_Group"].rstrip(' ')
-            if type == "NOIseq":
-                dic_gro = {}
-                for i_key, line in self.fqLink.items():
-
-                    groid = line[0]
-                    samid = line[1]
-                    if groid in dic_gro.keys():
-                        dic_gro[groid].append(samid)
-                    else:
-                        dic_gro[groid] = []
-                        dic_gro[groid].append(samid)
-
-                for i_key, line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp = line[0]
-                        Treat = line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["NOIseq_VS"] += control_tmp + "&" + treat_tmp + ","
-                            con_lis = ",".join(dic_gro[control_tmp])
-                            contm = control_tmp + ":" + con_lis
-                            tr_lis = ",".join(dic_gro[treat_tmp])
-                            trtm = treat_tmp + ":" + tr_lis
-                            self.parameter["NOIseq_Group"] = contm + " " + trtm + " "
-                self.parameter["NOIseq_VS"] = self.parameter["NOIseq_VS"].rstrip(',')
-                self.parameter["NOIseq_Group"] = self.parameter["NOIseq_Group"].rstrip(' ')
 
         explist = self.outdir + "ExpList.txt"
         with open(explist, 'w') as exp:
@@ -630,7 +511,7 @@ class genediffexp(common):
                     CompareList=CompareList,
                     deg_para=self.parameter["DEGseq_Filter"],
                     outdir=self.outdir + "DEGseq",
-					diffcom=diffcompare
+                    diffcom=diffcompare
                 )
 
             if type == "DEseq2":
@@ -746,7 +627,7 @@ class genediffexp(common):
 
     def makedefault(self,inputfq):
 
-        gxp = geneexp() #由于这里是新实例化一个对象，故这个实例的属性是继承了common的值，但是common初始值为空，事实上当运行至这一步是genediffexp.species的值会是传进来的值
+        gxp = geneexp()
         gxp.fqLink=self.fqLink
         gxp.species=self.species
         gxp.outdir=self.outdir.replace("GeneDiffExp_Allin","GeneExp")
@@ -907,7 +788,7 @@ class goenrichment(common):
         soft = self.getsoftware()
 
         self.outdir="RNAseq/GO_Hypergeometric/GO"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment"
 
         self.parameter={
             "Gene2Tr":"",
@@ -917,7 +798,7 @@ class goenrichment(common):
             "gene2go":"",
             "accession2go":""
         }
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment/go.pl"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/go.pl"
 
     def makeCommand(self,inputfq):
         deg=genediffexp()
@@ -929,15 +810,14 @@ class goenrichment(common):
         cmd=[]
         output=[]
         GODict={}
-        go_shell=""
+        go_shell="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH; "
 
         go_tmpdir=self.outdir+"/tmp_file"
         os.makedirs(go_tmpdir, mode=0o755, exist_ok=True)
 
         for diff_list in GeneDiffExpFilter:
             diff_id = ".".join(os.path.basename(diff_list).split('.')[0:2])
-            go_shell+="export PATH=/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAdenovo/RNA_RNAdenovo_2015a/software/perl-V5/bin:$PATH; " \
-                     "awk '{{if($5>0) print $1\"\\t\"$5\"\\tup\";else print $1\"\\t\"$5\"\\tdown\"}}'" \
+            go_shell+="awk '{{if($5>0) print $1\"\\t\"$5\"\\tup\";else print $1\"\\t\"$5\"\\tdown\"}}'" \
                      " {diff_list} >{tmpdir}/{keyname}.glist; " \
                      "perl {scriptbin}/drawGO.pl -list {tmpdir}/{keyname}.glist -goclass {goclass} " \
                      "-goprefix {prefix} -outprefix {outdir}/{keyname};".format(
@@ -952,7 +832,7 @@ class goenrichment(common):
             GODict[diff_id] = [self.outdir + "/" + diff_id + "_C.txt", self.outdir + "/" + diff_id + "_F.txt",
                                self.outdir + "/" + diff_id + "_P.txt"]
         go_shell+="perl {scriptbin}/go.pl -gldir {tmpdir} -sdir `dirname {prefix}` -species `basename {prefix}` -outdir {outdir};" \
-                  "perl {scriptbin}/topGO.pl -gldir {tmpdir} -godir {outdir} -outdir {outdir} -prefix {prefix}  -list {gene2tr} -outdir {outdir}".format(
+                  "perl {scriptbin}/topGO.pl -gldir {tmpdir} -godir {outdir} -prefix {prefix}  -list {gene2tr} -outdir {outdir}".format(
             tmpdir=go_tmpdir,
             prefix=self.parameter["GO_Prefix"],
             scriptbin=self.scriptbin,
@@ -1014,8 +894,8 @@ class pathwayenrichment(common):
             "kegg_fa":""
         }
 
-        self.scriptbin="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment/"
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/Enrichment/pathfind.pl"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/Enrichment/pathfind.pl"
 
     def makeCommand(self,inputfq):
         deg=genediffexp()
@@ -1110,8 +990,8 @@ class wgcna(common):
             "WeightThreshold":0.9,
             "NodesNumThreshold":1000
         }
-        self.program="/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/GeneCoExpression/bin/WGCNA.pl"
-        self.scriptbin = "/ifs4/BC_PUB/biosoft/pipeline/RNA/RNA_RNAseq/RNA_RNAseq_2017a/GeneCoExpression/bin/"
+        self.program="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin/WGCNA.pl"
+        self.scriptbin = "/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneCoExpression/bin"
         self.outdir = "RNAseq/GeneCoExpression_WGCNA"
 
     def makeCommand(self,inputfq):
@@ -1158,7 +1038,7 @@ class wgcna(common):
         input=[]
         input.append(Expdict)
         output=[]
-        if len(Expdict.keys()) >=q6:
+        if len(Expdict.keys()) >=6:
             output.append(self.outdir + "/CytoscapeInput-edges.txt")
             output.append(self.outdir + "/Coexpression.network1.pdf")
             output.append(self.outdir + "/Modules_heatmap.pdf")
@@ -1177,26 +1057,42 @@ class wgcna(common):
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["filter"], ["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
+        self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
-    def makeshell(self, outputfile=None):
-        outputjson = self.output
+    def runlocal(self,outputfile=None):
         outdir = self.outdirMain
+        os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
+        try:
+            for stepL in self.step:
+                for step in stepL:
+                    localcommand="sh %s" %(outdir+"/shell/" +step+".sh")
+                    submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
+                    if (submit.returncode == 0):
+                        print ("%s complete" %(step))
+                    else:
+                        sys.exit(1)
+        except IOError as e:
+            raise e
+
+    def makeshell(self, outputfile=None):
+        outdir = self.outdirMain
+        outputjson="%s/workflow.json" % (outdir)
         os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
         if outputfile is not None:
             outputjson = outputfile
         try:
             out = open(outputjson, mode='w')
             out.write("{\n")
-
             for stepL in self.step:
                 for step in stepL:
                     outshell = open(outdir+"/shell/"+step+".sh", mode='w')
                     astep = eval(step)
                     astepo = astep()
                     astepo.fqLink = self.fqLink
+                    astepo.species= self.species
+                    astepo.fqList=self.fqList
                     astepo.outdir = outdir +"/"+astepo.outdir
                     default = astepo.makedefault(self.fqList)
                     tmpcmd,tmpout = astepo.makeCommand(default['input'])
@@ -1247,7 +1143,81 @@ class interface(common):
             raise e
         return jsondict
 
+def checkSpecies(species):
+    if species is None:
+        return {"none":"none"}
+    else:
+        parta=species.split(',')
+        soft="none"
+        specie="none"
+        sdict={}
+        for content in parta:
+            if re.search(r'\:',content):
+                contents=content.split(":")
+                soft=contents[0]
+                specie=contents[1]
+            else:
+                specie=content
+            try:
+                sdict[soft].append(specie)
+            except:
+                sdict[soft]=[specie]
+        return sdict
+
+def loadFqList(fqList):
+    if fqList is None:
+        return ["test_1.fq.gz", "test_2.fq.gz"], {'a': ["1", "2", "3", "4"]}
+    else:
+        try:
+            lines = open(fqList, mode='r').readlines()
+        except IOError as e:
+            raise e
+        stat = {}
+        fq = []
+        for line in lines:
+            linep = line.split()
+            fq1 = linep[2]
+            fq1base = os.path.basename(fq1)
+            fq1prefix = re.sub(r'_\d\..*$', r'', fq1base)
+            stat[fq1prefix] = linep
+            fq += [linep[2], linep[3]]
+        return stat, fq
+
 if __name__=="__main__":
+    if len(sys.argv) == 1 :
+        print("You need to set some parameter")
+        sys.exit()
+    pwd = os.path.abspath('.')
+    parser = argparse.ArgumentParser(description="pipeline annotator help")
+    parser.add_argument('--mode', dest='runMode', type=str,help='how to action: run/makejson. run means executing the workflow. makejson means make a json with default parameter with defualt name')
+    parser.add_argument('--fqlist',dest='fqList',type=str,help="the list file that could contain five column: sampleID libraryID fq1path fq2path [specieA,specieB].[] means optional. species will used in RNAseq commparison test.")
+    parser.add_argument('--genomefa',dest='genomeFa',type=str,help="the genome fa used in workflow.\n HG19:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg19/hg19.fasta\n HG38:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg38/hg38.fa")
+    parser.add_argument('--species',dest='species',type=str,help="set species name where needed. format: augustus:A,genewise:B,C,D,fgene:E,F. A will used in augustus,BCD will used in genwise and so on.")
+    parser.add_argument('--outdir',dest='outdir',type=str,default=pwd,help='the output directory,default current directory')
+    localeArg=parser.parse_args()
+    absoutdir = os.path.abspath(localeArg.outdir)
+
+    os.makedirs(absoutdir, mode=0o755, exist_ok=True)
+    allSpecies = checkSpecies(localeArg.species)
 
     a = interface()
-    a.makeshell()
+    a.species = allSpecies
+    a.ref=localeArg.genomeFa
+    fqlist=localeArg.fqList
+    a.fqLink,a.fqList=loadFqList(fqlist)
+    a.outdirMain=absoutdir
+
+    if localeArg.runMode is None:
+        print("need set --mode")
+        sys.exit()
+    if localeArg.runMode == 'makeshell':
+        if localeArg.fqList is None and localeArg.genomeFa is None:
+            print("need fqlist or genome to makeshell")
+            sys.exit()
+        else:
+            a.makeshell()
+    elif localeArg.runMode == 'run':
+        a.makeshell()
+        a.runlocal()
+    else:
+        print("Unknow mode ==> %s" %(localeArg.runMode))

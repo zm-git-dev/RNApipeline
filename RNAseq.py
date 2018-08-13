@@ -463,7 +463,7 @@ class genediffexp(common):
         super(genediffexp,self).__init__()
         self.parameter={}
         self.program="DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
-        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneDiffExp/"
+        self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneDiffExp"
         self.outdir="RNAseq/GeneDiffExp_Allin/"
 
     def makeCommand(self, inputfq):
@@ -1057,7 +1057,7 @@ class wgcna(common):
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
+        self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
@@ -1077,15 +1077,14 @@ class interface(common):
             raise e
 
     def makeshell(self, outputfile=None):
-        outputjson = self.output
         outdir = self.outdirMain
+        outputjson="%s/workflow.json" % (outdir)
         os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
         if outputfile is not None:
             outputjson = outputfile
         try:
             out = open(outputjson, mode='w')
             out.write("{\n")
-
             for stepL in self.step:
                 for step in stepL:
                     outshell = open(outdir+"/shell/"+step+".sh", mode='w')
@@ -1197,6 +1196,7 @@ if __name__=="__main__":
     parser.add_argument('--outdir',dest='outdir',type=str,default=pwd,help='the output directory,default current directory')
     localeArg=parser.parse_args()
     absoutdir = os.path.abspath(localeArg.outdir)
+
     os.makedirs(absoutdir, mode=0o755, exist_ok=True)
     allSpecies = checkSpecies(localeArg.species)
 
@@ -1205,7 +1205,8 @@ if __name__=="__main__":
     a.ref=localeArg.genomeFa
     fqlist=localeArg.fqList
     a.fqLink,a.fqList=loadFqList(fqlist)
-    a.outdir=absoutdir
+    a.outdirMain=absoutdir
+
     if localeArg.runMode is None:
         print("need set --mode")
         sys.exit()
