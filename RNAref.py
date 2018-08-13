@@ -2580,36 +2580,6 @@ class interface(common):
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
-    def makeshell(self, outputfile=None):
-        outputjson = self.output
-        outdir = self.outdirMain
-        os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
-        if outputfile is not None:
-            outputjson = outputfile
-        try:
-            out = open(outputjson, mode='w')
-            out.write("{\n")
-            for stepL in self.step:
-                for step in stepL:
-                    outshell = open(outdir+"/shell/"+step+".sh", mode='w')
-                    astep = eval(step)
-                    astepo = astep()
-                    astepo.fqLink = self.fqLink
-                    astepo.outdir = outdir +"/"+astepo.outdir
-                    default = astepo.makedefault(self.fqList)
-                    tmpcmd,tmpout = astepo.makeCommand(default['input'])
-                    for i in tmpcmd:
-                        outshell.write(i+"\n")
-                    stepdict = json.dumps(astepo.makedefault(self.fqList))
-                    out.write("\"%s\":%s,\n" % (step, stepdict))
-                    outshell.close()
-                    os.system("sed -i \'s/;/\\n/g\' "+ outdir+"/shell/" +step+".sh")
-            out.write("\"outdir\":\"%s\"\n" % (self.outdirMain))
-            out.write("}\n")
-            out.close()
-        except IOError as e:
-            raise e
-
     def dumpjson(self, outputfile=None):
         outputjson = self.output
         if outputfile is not None:
@@ -2643,6 +2613,4 @@ class interface(common):
         return jsondict
 
 if __name__=="__main__":
-
-    a = interface()
-    a.makeshell()
+    pass
