@@ -25,7 +25,7 @@ class common(object):
         self.outdirMain = os.path.abspath('.')
         self.PEorSE="PE"
         self.ref = ""
-        self.species = {"RNAseq":["an"]}
+        self.species = {}
         self.fqList = []
         self.fqLink = {}
 
@@ -370,7 +370,7 @@ class geneexp(common):
                     samtools=self.samtools,
                     bampath=self.outdir+'/'+SampleID+"/"+SampleID+'.bam',
                     rsem_calculate_expression=self.rsem_calculate_expression,
-					indexdir=self.outdir,
+                    indexdir=self.outdir,
                     outdir=self.outdir+'/'+SampleID,sampleid=SampleID
                 )
                 BamPath="{outDir}/{sampleid}.bam" \
@@ -396,7 +396,7 @@ class geneexp(common):
                     gene_index=self.outdir+"/refMrna.fa",
                     fq1=cleanFq,
                     samtools=self.samtools,
-					indexdir=self.outdir,
+                    indexdir=self.outdir,
                     bampath=self.outdir+'/'+SampleID+"/"+SampleID+'.bam',
                     rsem_calculate_expression=self.rsem_calculate_expression,
                     outdir=self.outdir+"/"+SampleID,sampleid=SampleID
@@ -479,103 +479,6 @@ class genediffexp(common):
 
         deg_methods = self.program.split(',')
 
-        # self.fqLink #[A,A01,FQ1,FQ2,B]
-        for type in deg_methods:
-            if type == "DEGseq":
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["DEGseq_VS"] += control_tmp + "&"+ treat_tmp+","
-                self.parameter["DEGseq_VS"] = self.parameter["DEGseq_VS"].rstrip(",")
-
-            if type == "PossionDis":
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["PossionDis_VS"] += control_tmp + "&"+ treat_tmp+","
-                self.parameter["PossionDis_VS"]= self.parameter["PossionDis_VS"].rstrip(',')
-            if type == "DEseq2":
-                dic_gro = {}
-                for i_key,line in self.fqLink.items():
-                    groid=line[0]
-                    samid=line[1]
-                    if groid in dic_gro.keys():
-                        dic_gro[groid].append(samid)
-                    else:
-                        dic_gro[groid]=[]
-                        dic_gro[groid].append(samid)
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["DEseq2_VS"] += control_tmp + "&"+ treat_tmp+","
-                            con_lis=",".join(dic_gro[control_tmp])
-                            contm=control_tmp+":"+con_lis
-                            tr_lis=",".join(dic_gro[treat_tmp])
-                            trtm=treat_tmp+":"+tr_lis
-                            self.parameter["DEseq2_Group"] = contm +" " +trtm +" "
-                self.parameter["DEseq2_VS"] =self.parameter["DEseq2_VS"].rstrip(',')
-                self.parameter["DEseq2_Group"] =self.parameter["DEseq2_Group"].rstrip(' ')
-            if type == "EBseq":
-                dic_gro = {}
-                for i_key,line in self.fqLink.items():
-                    groid=line[0]
-                    samid=line[1]
-                    if groid in dic_gro.keys():
-                        dic_gro[groid].append(samid)
-                    else:
-                        dic_gro[groid]=[]
-                        dic_gro[groid].append(samid)
-
-                for i_key,line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp =line[0]
-                        Treat=line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["EBseq_VS"] += control_tmp + "&"+ treat_tmp+","
-                            con_lis=",".join(dic_gro[control_tmp])
-                            contm=control_tmp+":"+con_lis
-                            tr_lis=",".join(dic_gro[treat_tmp])
-                            trtm=treat_tmp+":"+tr_lis
-                            self.parameter["EBseq_Group"] = contm +" " +trtm +" "
-                self.parameter["EBseq_VS"] =self.parameter["EBseq_VS"].rstrip(',')
-                self.parameter["EBseq_Group"] = self.parameter["EBseq_Group"].rstrip(' ')
-            if type == "NOIseq":
-                dic_gro = {}
-                for i_key, line in self.fqLink.items():
-
-                    groid = line[0]
-                    samid = line[1]
-                    if groid in dic_gro.keys():
-                        dic_gro[groid].append(samid)
-                    else:
-                        dic_gro[groid] = []
-                        dic_gro[groid].append(samid)
-
-                for i_key, line in self.fqLink.items():
-                    if len(line) == 5:
-                        control_tmp = line[0]
-                        Treat = line[4]
-                        Treat_list = Treat.split(',')
-                        for treat_tmp in Treat_list:
-                            self.parameter["NOIseq_VS"] += control_tmp + "&" + treat_tmp + ","
-                            con_lis = ",".join(dic_gro[control_tmp])
-                            contm = control_tmp + ":" + con_lis
-                            tr_lis = ",".join(dic_gro[treat_tmp])
-                            trtm = treat_tmp + ":" + tr_lis
-                            self.parameter["NOIseq_Group"] = contm + " " + trtm + " "
-                self.parameter["NOIseq_VS"] = self.parameter["NOIseq_VS"].rstrip(',')
-                self.parameter["NOIseq_Group"] = self.parameter["NOIseq_Group"].rstrip(' ')
-
         explist = self.outdir + "ExpList.txt"
         with open(explist, 'w') as exp:
             for Sample, GeneExp in ExpDict.items():
@@ -608,7 +511,7 @@ class genediffexp(common):
                     CompareList=CompareList,
                     deg_para=self.parameter["DEGseq_Filter"],
                     outdir=self.outdir + "DEGseq",
-					diffcom=diffcompare
+                    diffcom=diffcompare
                 )
 
             if type == "DEseq2":
@@ -1189,6 +1092,8 @@ class interface(common):
                     astep = eval(step)
                     astepo = astep()
                     astepo.fqLink = self.fqLink
+                    astepo.species= self.species
+                    astepo.fqList=self.fqList
                     astepo.outdir = outdir +"/"+astepo.outdir
                     default = astepo.makedefault(self.fqList)
                     tmpcmd,tmpout = astepo.makeCommand(default['input'])
@@ -1239,11 +1144,29 @@ class interface(common):
             raise e
         return jsondict
 
+def checkSpecies(species):
+    if species is None:
+        return {"none":"none"}
+    else:
+        parta=species.split(',')
+        soft="none"
+        specie="none"
+        sdict={}
+        for content in parta:
+            if re.search(r'\:',content):
+                contents=content.split(":")
+                soft=contents[0]
+                specie=contents[1]
+            else:
+                specie=content
+            try:
+                sdict[soft].append(specie)
+            except:
+                sdict[soft]=[specie]
+        return sdict
 
-def loadFqList(self, fqList):
+def loadFqList(fqList):
     if fqList is None:
-        # logging.info("fqlist is not defined; please use makejson to make a json and modified the input.then use the inputjson parameter to load the setting.")
-        self.check = 1
         return ["test_1.fq.gz", "test_2.fq.gz"], {'a': ["1", "2", "3", "4"]}
     else:
         try:
@@ -1263,14 +1186,37 @@ def loadFqList(self, fqList):
 
 if __name__=="__main__":
     if len(sys.argv) == 1 :
+        print("You need to set some parameter")
         sys.exit()
+    pwd = os.path.abspath('.')
     parser = argparse.ArgumentParser(description="pipeline annotator help")
+    parser.add_argument('--mode', dest='runMode', type=str,help='how to action: run/makejson. run means executing the workflow. makejson means make a json with default parameter with defualt name')
     parser.add_argument('--fqlist',dest='fqList',type=str,help="the list file that could contain five column: sampleID libraryID fq1path fq2path [specieA,specieB].[] means optional. species will used in RNAseq commparison test.")
     parser.add_argument('--genomefa',dest='genomeFa',type=str,help="the genome fa used in workflow.\n HG19:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg19/hg19.fasta\n HG38:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg38/hg38.fa")
     parser.add_argument('--species',dest='species',type=str,help="set species name where needed. format: augustus:A,genewise:B,C,D,fgene:E,F. A will used in augustus,BCD will used in genwise and so on.")
     parser.add_argument('--outdir',dest='outdir',type=str,default=pwd,help='the output directory,default current directory')
     localeArg=parser.parse_args()
+    absoutdir = os.path.abspath(localeArg.outdir)
+    os.makedirs(absoutdir, mode=0o755, exist_ok=True)
+    allSpecies = checkSpecies(localeArg.species)
 
     a = interface()
-    a.makeshell()
-    a.runlocal()
+    a.species = allSpecies
+    a.ref=localeArg.genomeFa
+    fqlist=localeArg.fqList
+    a.fqLink,a.fqList=loadFqList(fqlist)
+    a.outdir=absoutdir
+    if localeArg.runMode is None:
+        print("need set --mode")
+        sys.exit()
+    if localeArg.runMode == 'makeshell':
+        if localeArg.fqList is None and localeArg.genomeFa is None:
+            print("need fqlist or genome to makeshell")
+            sys.exit()
+        else:
+            a.makeshell()
+    elif localeArg.runMode == 'run':
+        a.makeshell()
+        a.runlocal()
+    else:
+        print("Unknow mode ==> %s" %(localeArg.runMode))
