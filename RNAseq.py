@@ -1053,6 +1053,38 @@ class wgcna(common):
         }
         return default
 
+class preresult(common):
+    def __init__(self):
+        super(preresult, self).__init__()
+        self.parameter = ""
+        self.program=""
+        self.outdir = "RNAseq/BGI_result"
+    def makeCommand(self, inputfq):
+        os.makedirs(self.outdir, mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/2.MapStat", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/3.Structure", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/4.Quantify", mode=0o755, exist_ok=True)
+        cpshell=""
+        cpshell +="cp {filteroutdir}/*/*.filter.stat.xls {outdir}/1.CleanData;" \
+                  "cp {filteroutdir}/*/*.RawReadsClass.png {outdir}/1.CleanData;" \
+                  "cp {filteroutdir}/*/*.base.png {outdir}/1.CleanData;" \
+                  "cp {filteroutdir}/*/*.qual.png {outdir}/1.CleanData;" \
+                  "cp {filteroutdir}/FilterSummary.xls {outdir}/1.CleanData;" \
+                  "cp GenomeMappingSummary.xls {outdir}/2.MapStat/GenomeMapping;" \
+                  "cp {alignmentoutdir}/*.Map2GenomeStat.xls {outdir}/2.MapStat/GenomeMapping;" \
+                  "cp {alignmentoutdir}/*/*AddRG.Reorder.Sort.bam {alignmentoutdir}/*/*AddRG.Reorder.Sort.bam.bai {outdir}/2.MapStat/GenomeMapping;" \
+                  "cp *.fpkm.xls {outdir}/4.Quantify/GeneExpression/GeneExpression;" \
+                  "cp *.Bowtie2Gene.MapReadsStat.xls {outdir}/2.MapStat/GeneMapping;" \
+                  "cp *GeneDiffExp*xls *.MA-plot.* *.Scatter-plot.* *.Volcano-plot.* {outdir}/4.Quantify/DifferentiallyExpressedGene/DEGList;" \
+                  "cp * 4.Quantify/DifferentiallyExpressedGene/GeneOntolotyEnrichment;" \
+                  "cp {*.xls,*.htm,*.pdf,*.png,*.path,*map} 4.Quantify/DifferentiallyExpressedGene/KeggPathwayEnrichmen;" \
+                  "cp -r Cytoscape* Modules* Coexpression.network* 4.Quantify/GeneExpression/GeneCoExpression_WGCNA"
+
+
+    def makedefault(self, inputfq):
+        pass
+
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
