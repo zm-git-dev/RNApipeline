@@ -221,7 +221,7 @@ class alignment(common):
             for SampleID,Cleandata in CleanDataDict.items():
                 cleanFqA=Cleandata["clean_fq1"]
                 cleanFqB=Cleandata["clean_fq2"]
-                hisat2shell+="{hisat2}/hisat2 {hisat2_para} -x {genome_index} -1 {fq1} -2 {fq2} " \
+                hisat2shell+="{hisat2} {hisat2_para} -x {genome_index} -1 {fq1} -2 {fq2} " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {outdir}/{sampleid}.bam -\n".format(
                     hisat2=self.hisat2,
@@ -239,7 +239,7 @@ class alignment(common):
         elif self.PEorSE == "SE":
             for SampleID, Cleandata in CleanDataDict.items():
                 cleanFq=Cleandata["clean_fq"]
-                hisat2shell+="{hisat2}/hisat2 {hisat2_para} -x {genome_index} -1 {fq1}  " \
+                hisat2shell+="{hisat2} {hisat2_para} -x {genome_index} -1 {fq1}  " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {outdir}/{sampleid}.bam\n".format(
                     hisat2=self.hisat2,

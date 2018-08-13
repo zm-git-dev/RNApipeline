@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import subprocess
+from multiprocessing import Pool
 import argparse
 
 from DataBasePath import DataBasePath
@@ -222,7 +223,7 @@ class alignment(common):
             for SampleID,Cleandata in CleanDataDict.items():
                 cleanFqA=Cleandata["clean_fq1"]
                 cleanFqB=Cleandata["clean_fq2"]
-                hisat2shell+="{hisat2}/hisat2 {hisat2_para} -x {genome_index} -1 {fq1} -2 {fq2} " \
+                hisat2shell+="{hisat2} {hisat2_para} -x {genome_index} -1 {fq1} -2 {fq2} " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {outdir}/{sampleid}.bam -\n".format(
                     hisat2=self.hisat2,
@@ -240,7 +241,7 @@ class alignment(common):
         elif self.PEorSE == "SE":
             for SampleID, Cleandata in CleanDataDict.items():
                 cleanFq=Cleandata["clean_fq"]
-                hisat2shell+="{hisat2}/hisat2 {hisat2_para} -x {genome_index} -1 {fq1}  " \
+                hisat2shell+="{hisat2} {hisat2_para} -x {genome_index} -1 {fq1}  " \
                              "2>{outdir}/{sampleid}.Map2GenomeStat.xls |  " \
                              "{samtools} view -b -S -o {outdir}/{sampleid}.bam\n".format(
                     hisat2=self.hisat2,
@@ -1061,18 +1062,28 @@ class interface(common):
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
-    def runlocal(self,outputfile=None):
+    def runlocal(self):
         outdir = self.outdirMain
-        os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
         try:
             for stepL in self.step:
                 for step in stepL:
-                    localcommand="sh %s" %(outdir+"/shell/" +step+".sh")
-                    submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
-                    if (submit.returncode == 0):
-                        print ("%s complete" %(step))
-                    else:
-                        sys.exit(1)
+                    astep = eval(step)
+                    astepo = astep()
+                    astepo.fqLink = self.fqLink
+                    astepo.species= self.species
+                    astepo.fqList=self.fqList
+                    astepo.outdir = outdir +"/"+astepo.outdir
+                    default = astepo.makedefault(self.fqList)
+                    tmpcmd,tmpout = astepo.makeCommand(default['input'])
+                    job=[]
+                    for i in range(len(tmpcmd)):
+                        runcmdlist = tmpcmd[i].split("\n")
+                        for j in range(len(runcmdlist)):
+                            localcommand = runcmdlist[j]
+                            submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
+                            job.append(submit)
+                        for n in job:
+                            n.wait()
         except IOError as e:
             raise e
 
@@ -1087,7 +1098,6 @@ class interface(common):
             out.write("{\n")
             for stepL in self.step:
                 for step in stepL:
-                    outshell = open(outdir+"/shell/"+step+".sh", mode='w')
                     astep = eval(step)
                     astepo = astep()
                     astepo.fqLink = self.fqLink
@@ -1096,12 +1106,13 @@ class interface(common):
                     astepo.outdir = outdir +"/"+astepo.outdir
                     default = astepo.makedefault(self.fqList)
                     tmpcmd,tmpout = astepo.makeCommand(default['input'])
-                    for i in tmpcmd:
-                        outshell.write(i+"\n")
+                    for i in range(len(tmpcmd)):
+                        outshell = open(outdir + "/shell/" + step + str(i) +".sh", mode='w')
+                        outshell.write(tmpcmd[i])
+                        outshell.close()
                     stepdict = json.dumps(astepo.makedefault(self.fqList))
                     out.write("\"%s\":%s,\n" % (step, stepdict))
-                    outshell.close()
-                    os.system("sed -i \'s/;/\\n/g\' "+ outdir+"/shell/" +step+".sh")
+                    os.system("sed -i \'s/;/\\n/g\' "+ outdir+"/shell/" +step+"*.sh")
             out.write("\"outdir\":\"%s\"\n" % (self.outdirMain))
             out.write("}\n")
             out.close()
