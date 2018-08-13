@@ -6,8 +6,7 @@ import logging
 import os
 import re
 import sys
-import subprocess
-import argparse
+
 
 from DataBasePath import DataBasePath
 
@@ -1061,55 +1060,6 @@ class interface(common):
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
-    def runlocal(self,outputfile=None):
-        outdir = self.outdirMain
-        os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
-        try:
-            for stepL in self.step:
-                for step in stepL:
-                    localcommand="sh %s" %(outdir+"/shell/" +step+".sh")
-                    submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
-                    if (submit.returncode == 0):
-                        print ("%s complete" %(step))
-                    else:
-                        sys.exit(1)
-        except IOError as e:
-            raise e
-
-    def makeshell(self, outputfile=None):
-        outdir = self.outdirMain
-        outputjson="%s/workflow.json" % (outdir)
-        os.makedirs(outdir+"/shell",exist_ok=True,mode=0o755)
-        if outputfile is not None:
-            outputjson = outputfile
-        try:
-            out = open(outputjson, mode='w')
-            out.write("{\n")
-            for stepL in self.step:
-                for step in stepL:
-                    outshell = open(outdir+"/shell/"+step+".sh", mode='w')
-                    astep = eval(step)
-                    astepo = astep()
-                    astepo.fqLink = self.fqLink
-                    astepo.species= self.species
-                    astepo.fqList=self.fqList
-                    astepo.outdir = outdir +"/"+astepo.outdir
-                    default = astepo.makedefault(self.fqList)
-                    tmpcmd,tmpout = astepo.makeCommand(default['input'])
-                    for i in tmpcmd:
-                        outshell.write(i+"\n")
-                    stepdict = json.dumps(astepo.makedefault(self.fqList))
-                    out.write("\"%s\":%s,\n" % (step, stepdict))
-                    outshell.close()
-                    os.system("sed -i \'s/;/\\n/g\' "+ outdir+"/shell/" +step+".sh")
-            out.write("\"outdir\":\"%s\"\n" % (self.outdirMain))
-            out.write("}\n")
-            out.close()
-
-
-        except IOError as e:
-            raise e
-
     def dumpjson(self, outputfile=None):
         outputjson = self.output
         if outputfile is not None:
@@ -1143,81 +1093,5 @@ class interface(common):
             raise e
         return jsondict
 
-def checkSpecies(species):
-    if species is None:
-        return {"none":"none"}
-    else:
-        parta=species.split(',')
-        soft="none"
-        specie="none"
-        sdict={}
-        for content in parta:
-            if re.search(r'\:',content):
-                contents=content.split(":")
-                soft=contents[0]
-                specie=contents[1]
-            else:
-                specie=content
-            try:
-                sdict[soft].append(specie)
-            except:
-                sdict[soft]=[specie]
-        return sdict
-
-def loadFqList(fqList):
-    if fqList is None:
-        return ["test_1.fq.gz", "test_2.fq.gz"], {'a': ["1", "2", "3", "4"]}
-    else:
-        try:
-            lines = open(fqList, mode='r').readlines()
-        except IOError as e:
-            raise e
-        stat = {}
-        fq = []
-        for line in lines:
-            linep = line.split()
-            fq1 = linep[2]
-            fq1base = os.path.basename(fq1)
-            fq1prefix = re.sub(r'_\d\..*$', r'', fq1base)
-            stat[fq1prefix] = linep
-            fq += [linep[2], linep[3]]
-        return stat, fq
-
 if __name__=="__main__":
-    if len(sys.argv) == 1 :
-        print("You need to set some parameter")
-        sys.exit()
-    pwd = os.path.abspath('.')
-    parser = argparse.ArgumentParser(description="pipeline annotator help")
-    parser.add_argument('--mode', dest='runMode', type=str,help='how to action: run/makejson. run means executing the workflow. makejson means make a json with default parameter with defualt name')
-    parser.add_argument('--fqlist',dest='fqList',type=str,help="the list file that could contain five column: sampleID libraryID fq1path fq2path [specieA,specieB].[] means optional. species will used in RNAseq commparison test.")
-    parser.add_argument('--genomefa',dest='genomeFa',type=str,help="the genome fa used in workflow.\n HG19:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg19/hg19.fasta\n HG38:/hwfssz1/BIGDATA_COMPUTING/GaeaProject/reference/hg38/hg38.fa")
-    parser.add_argument('--species',dest='species',type=str,help="set species name where needed. format: augustus:A,genewise:B,C,D,fgene:E,F. A will used in augustus,BCD will used in genwise and so on.")
-    parser.add_argument('--outdir',dest='outdir',type=str,default=pwd,help='the output directory,default current directory')
-    localeArg=parser.parse_args()
-    absoutdir = os.path.abspath(localeArg.outdir)
-
-    os.makedirs(absoutdir, mode=0o755, exist_ok=True)
-    allSpecies = checkSpecies(localeArg.species)
-
-    a = interface()
-    a.species = allSpecies
-    a.ref=localeArg.genomeFa
-    fqlist=localeArg.fqList
-    a.fqLink,a.fqList=loadFqList(fqlist)
-    a.outdirMain=absoutdir
-
-    if localeArg.runMode is None:
-        print("need set --mode")
-        sys.exit()
-    if localeArg.runMode == 'makeshell':
-        if localeArg.fqList is None and localeArg.genomeFa is None:
-            print("need fqlist or genome to makeshell")
-            sys.exit()
-        else:
-            a.makeshell()
-    elif localeArg.runMode == 'run':
-        a.makeshell()
-        a.runlocal()
-    else:
-        print("Unknow mode ==> %s" %(localeArg.runMode))
+    pass
