@@ -1056,6 +1056,67 @@ class wgcna(common):
         }
         return default
 
+class preresult(common):
+    def __init__(self):
+        super(preresult, self).__init__()
+        self.parameter = ""
+        self.program=""
+        self.outdir = "RNAseq/BGI_result"
+    def makeCommand(self, inputfq):
+        outd = self.outdir.replace("/BGI_result", "")
+        os.makedirs(self.outdir, mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/2.MapStat", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/3.Structure", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/4.Quantify", mode=0o755, exist_ok=True)
+        cpshell=""
+        cmd=[]
+        output=[]
+        cpshell +="cp {filteroutdir}/*/*.filter.stat.xls {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.RawReadsClass.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.base.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.qual.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/FilterSummary.xls {outdir}/1.CleanData/;" \
+                  "mkdir -p {outdir}/2.MapStat/GenomeMapping/;" \
+                  "cp {alignmentoutdir}/GenomeMappingSummary.xls {outdir}/2.MapStat/GenomeMapping/;" \
+                  "cp {alignmentoutdir}/*.Map2GenomeStat.xls {outdir}/2.MapStat/GenomeMapping/;" \
+                  "cp {alignmentoutdir}/*/*AddRG.Reorder.Sort.bam {alignmentoutdir}/*/*AddRG.Reorder.Sort.bam.bai {outdir}/2.MapStat/GenomeMapping/" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/GeneExpression/;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/DEGList/;" \
+                  "cp {geneexpoutdir}/*/*.fpkm.xls {outdir}/4.Quantify/GeneExpression/GeneExpression/;" \
+                  "mkdir -p {outdir}/2.MapStat/GeneMapping/;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/GeneOntolotyEnrichment/;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/KeggPathwayEnrichmen/;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/GeneCoExpression_WGCNA/;" \
+                  "cp {geneexpoutdir}/*/*.Map2GeneStat.xls {outdir}/2.MapStat/GeneMapping/;" \
+                  "cp {genediffexpoutdir}/*/*GeneDiffExp*xls {genediffexpoutdir}/*/*.MA-plot.* {genediffexpoutdir}/*/*.Scatter-plot.* {genediffexpoutdir}/*/*.Volcano-plot.* {outdir}/4.Quantify/DifferentiallyExpressedGene/DEGList/;" \
+                  "cp {goenrichmentoutdir}/* {outdir}/4.Quantify/DifferentiallyExpressedGene/GeneOntolotyEnrichment/;" \
+                  "cp {pathwayenrichmentoutdir}/{{*.xls,*.htm,*.pdf,*.png,*.path,*map}} {outdir}/4.Quantify/DifferentiallyExpressedGene/KeggPathwayEnrichmen/;" \
+                  "cp -r {wgcnaoutdir}/Cytoscape* {wgcnaoutdir}/Modules* {wgcnaoutdir}/Coexpression.network* {outdir}/4.Quantify/GeneExpression/GeneCoExpression_WGCNA/".format(
+            filteroutdir=outd+"/Filter_SOAPnuke",
+            alignmentoutdir=outd+"/GenomeMapping_HISAT",
+            geneexpoutdir=outd+"/GeneExp",
+            genediffexpoutdir=outd+"/GeneDiffExp_Allin",
+            goenrichmentoutdir=outd+"/GO_Hypergeometric/GO",
+            pathwayenrichmentoutdir=outd+"/Pathway_Hypergeometric/KEGG",
+            wgcnaoutdir=outd+"/GeneCoExpression_WGCNA",
+            outdir=self.outdir
+        )
+        cmd.append(cpshell)
+        return cmd,output
+
+    def makedefault(self, inputfq):
+        input=[]
+        output=[]
+        default={
+            'input': input,
+            'parameter': self.parameter,
+            'program': self.program,
+            'resource': "0.5G,1CPU",
+            'output': output
+        }
+        return default
+
 def run_cmd(cmd):
     print('Run cmd %s' % cmd)
     submit = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -1065,7 +1126,8 @@ def run_cmd(cmd):
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["geneexp"],["genediffexp"],["goenrichment"],["pathwayenrichment"]]
+        # self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"],["preresult"]]
+        self.step = [["wgcna"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
     def runlocal(self):
