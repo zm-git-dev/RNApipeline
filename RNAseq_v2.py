@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import subprocess
+import math
 from multiprocessing import Pool
 import argparse
 
@@ -1055,13 +1056,18 @@ class wgcna(common):
         }
         return default
 
+def run_cmd(cmd):
+    print('Run cmd %s' % cmd)
+    submit = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+                              universal_newlines=True)
+    submit.communicate()
+
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
+        self.step = [["geneexp"],["genediffexp"],["goenrichment"],["pathwayenrichment"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
-
     def runlocal(self):
         outdir = self.outdirMain
         try:
@@ -1075,15 +1081,19 @@ class interface(common):
                     astepo.outdir = outdir +"/"+astepo.outdir
                     default = astepo.makedefault(self.fqList)
                     tmpcmd,tmpout = astepo.makeCommand(default['input'])
-                    job=[]
+                    print (step +" start")
                     for i in range(len(tmpcmd)):
                         runcmdlist = tmpcmd[i].split("\n")
-                        for j in range(len(runcmdlist)):
-                            localcommand = runcmdlist[j]
-                            submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
-                            job.append(submit)
-                        for n in job:
-                            n.wait()
+                        processNum=len(runcmdlist)
+                        realp = math.ceil(processNum/2)
+                        with Pool(realp) as p:
+                            for j in range(len(runcmdlist)):
+                                p.apply_async(run_cmd,args=(runcmdlist[j],))
+                            print("Waiting for all subprocess done...")
+                            p.close()
+                            p.join()
+                            print ("All subprocess done")
+                    print (step + " finish")
         except IOError as e:
             raise e
 
