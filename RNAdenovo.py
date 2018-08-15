@@ -892,7 +892,7 @@ class genediffexp(common):
 
         deg_methods = self.program.split(',')
 
-        explist = self.outdir + "ExpList.txt"
+        explist = self.outdir + "/ExpList.txt"
         with open(explist, 'w') as exp:
             for Sample, GeneExp in ExpDict.items():
                 exp.write(Sample + '\t' + GeneExp + '\n')
@@ -900,7 +900,7 @@ class genediffexp(common):
         for type in deg_methods:
             if type == "DEGseq":
                 os.makedirs(self.outdir + '/DEGseq', mode=0o755, exist_ok=True)
-                diffcompare = self.outdir + "DEGseq/diffCompare"
+                diffcompare = self.outdir + "/DEGseq/diffCompare"
                 with open(diffcompare, 'w') as diffcomparelist:
                     compare_groups = self.parameter["DEGseq_VS"].split(',')
                     for single_group in compare_groups:
@@ -923,7 +923,7 @@ class genediffexp(common):
                     scriptbin=self.scriptbin,
                     CompareList=CompareList,
                     deg_para=self.parameter["DEGseq_Filter"],
-                    outdir=self.outdir + "DEGseq",
+                    outdir=self.outdir + "/DEGseq",
                     diffcom=diffcompare
 
                 )
@@ -1888,6 +1888,93 @@ class prg(common):
         }
 
         return  default
+
+class preresult(common):
+    def __init__(self):
+        super(preresult, self).__init__()
+        self.parameter = ""
+        self.program=""
+        self.outdir = "BGI_result"
+    def makeCommand(self, inputfq):
+        outd = self.outdir.replace("/BGI_result", "")
+        os.makedirs(self.outdir, mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/2.Assembly", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/3.Annotation", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/4.Structure", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir + "/5.Quantify", mode=0o755, exist_ok=True)
+        cpshell=""
+        cmd=[]
+        output=[]
+        cpshell +="mkdir -p {outdir}/4.Structure/CDSpredict/CDSpredict;" \
+                  "mkdir -p {outdir}/4.Structure/PHI;" \
+                  "mkdir -p {outdir}/4.Structure/PRG;" \
+                  "mkdir -p {outdir}/4.Structure/SNP;" \
+                  "mkdir -p {outdir}/4.Structure/SSR;" \
+                  "mkdir -p {outdir}/4.Structure/TFpredict;" \
+                  "mkdir -p {outdir}/5.Quantify/DifferentiallyExpressedGene/Functional_Enrichment/Pathway;" \
+                  "mkdir -p {outdir}/5.Quantify/DifferentiallyExpressedGene/Functional_Enrichment/GO;" \
+                  "mkdir -p {outdir}/5.Quantify/DifferentiallyExpressedGene/HierarchicalCluster;" \
+                  "mkdir -p {outdir}/5.Quantify/DifferentiallyExpressedGene/PPI;" \
+                  "mkdir -p {outdir}/5.Quantify/GeneExpression/Clustering_Mfuzz;" \
+                  "mkdir -p {outdir}/5.Quantify/PCA;" \
+                  "mkdir -p {outdir}/5.Quantify/Venny;" \
+                  "cp {filteroutdir}/*/*.filter.stat.xls {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.RawReadsClass.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.base.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.qual.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/FilterSummary.xls {outdir}/1.CleanData/;" \
+                  "cp {trinityoutdir}/All-Unigene.fa {outdir}/2.Assembly;" \
+                  "cp {trinityoutdir}/Unigene.fa {outdir}/2.Assembly;" \
+                  "cp {trinityoutdir}/All-Unigene.gene2mark {outdir}/2.Assembly;" \
+                  "cp {annotationoutdir}/{{*xls,*pdf,*png,*path,*.htm,*.ko,*map}} {outdir}/3.Annotation/;" \
+                  "cp {ssroutdir}/{{All-Unigene.misa.xls,All-Unigene.statistics.xls,SSR_statistics.png,SSR_statistics.xls}} {outdir}/4.Structure/SSR/;" \
+                  "cp {cdsoutdir}/{{PredictSummary.xls,All-Unigene.fa.transdecoder.cds*,All-Unigene.fa.transdecoder.pep,All-Unigene.fa.transdecoder.gff3,All-Unigene.fa.transdecoder.bed,All-Unigene.cds.length.png,All-Unigene.cds.length.pdf}} {outdir}/4.Structure/CDSpredict/CDSpredict/;" \
+                  "cp {geneexpoutdir}/*/*.gene.fpkm.xls {outdir}/5.Quantify/GeneExpression/;" \
+                  "cp {geneexpoutdir}/*/*.Bowtie2Gene.MapReadsStat.xls {outdir}/5.Quantify/GeneExpression/;" \
+                  "cp {geneexpoutdir}/{{All.GeneExpression.FPKM.xls,MappingSummary.xls}} {outdir}/5.Quantify/GeneExpression/;" \
+                  "cp {geneexpoutdir}/GeneExpression/* {outdir}/5.Quantify/GeneExpression/;" \
+                  "cp {genediffexpoutdir}/*/*GeneDiffExp*xls {genediffexpoutdir}/*/*.MA-plot.* {genediffexpoutdir}/*/*.Scatter-plot.* {genediffexpoutdir}/*/*.Volcano-plot.* {outdir}/5.Quantify/DifferentiallyExpressedGene/;" \
+                  "cp {goenrichmentoutdir}/* {outdir}/5.Quantify/DifferentiallyExpressedGene/Functional_Enrichment/GO/;" \
+                  "cp {pathwayenrichmentoutdir}/{{*.xls,*.htm,*.pdf,*.png,*.path,*map}} {outdir}/5.Quantify/DifferentiallyExpressedGene/Functional_Enrichment/Pathway/;" \
+                  "cp {ppioutdir}/{{*.network.pdf,*.network.png,*.network.relation.txt}} {outdir}/5.Quantify/DifferentiallyExpressedGene/PPI/;" \
+                  "cp {snpoutdir}/snp_population.xlsx {outdir}/4.Structure/SNP/;" \
+                  "cp {snpoutdir}/{{SnpSummary*,All.snp.combine.vcf}} {outdir}/4.Structure/SNP/;" \
+                  "cp {snpoutdir}/*/*.snp.vcf {outdir}/4.Structure/SNP/;" \
+                  "cp {tfoutdir}/{{*pdf,*png,*xls}} {outdir}/4.Structure/TFpredict/;" \
+                  "cp {phioutdir}/Unigene2PHI.result.xls {outdir}/4.Structure/PHI/;" \
+                  "cp {prgoutdir}/Unigene2PRG.result.xls {outdir}/4.Structure/PRG/;".format(
+            filteroutdir=outd+"/Filter_SOAPnuke",
+            trinityoutdir=outd+"/Denovo_Trinity",
+            annotationoutdir=outd+"/Annotation_Blast",
+            ssroutdir=outd+"/SSR_MISA",
+            cdsoutdir=outd+"/CDSpredict_TransDecoder",
+            alignmentoutdir=outd+"/GenomeMapping_HISAT",
+            geneexpoutdir=outd+"/GeneExp",
+            genediffexpoutdir=outd+"/GeneDiffExp_Allin",
+            goenrichmentoutdir=outd+"/GO_Hypergeometric/GO",
+            pathwayenrichmentoutdir=outd+"/Pathway_Hypergeometric/Pathway",
+            ppioutdir=outd+"/PPI_Interaction",
+            snpoutdir=outd+"/SNP_GATK",
+            tfoutdir=outd+"/TFpredict",
+            phioutdir=outd+"/PHI_Blastx",
+            prgoutdir=outd+"/PRG_Blastx",
+            outdir=self.outdir
+        )
+        cmd.append(cpshell)
+        return cmd,output
+
+    def makedefault(self, inputfq):
+        input=[]
+        output=[]
+        default={
+            'input': input,
+            'parameter': self.parameter,
+            'program': self.program,
+            'resource': "0.5G,1CPU",
+            'output': output
+        }
+        return default
 
 class interface(common):
     def __init__(self):

@@ -6,6 +6,9 @@ import logging
 import os
 import re
 import sys
+import subprocess
+import math
+from multiprocessing import Pool
 
 from DataBasePath import DataBasePath
 
@@ -2572,6 +2575,108 @@ class cluster(common):
 
         return  default
 
+class preresult(common):
+    def __init__(self):
+        super(preresult, self).__init__()
+        self.parameter = ""
+        self.program=""
+        self.outdir = "BGI_result"
+    def makeCommand(self, inputfq):
+        outd = self.outdir.replace("/BGI_result", "")
+        os.makedirs(self.outdir, mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/2.MapStat", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/3.Structure", mode=0o755, exist_ok=True)
+        os.makedirs(self.outdir+"/4.Quantify", mode=0o755, exist_ok=True)
+        cpshell=""
+        cmd=[]
+        output=[]
+        cpshell +="mkdir -p {outdir}/2.MapStat/GeneMapping;" \
+                  "mkdir -p {outdir}/2.MapStat/GenomeMapping;" \
+                  "mkdir -p {outdir}/3.Structure/Circos;" \
+                  "mkdir -p {outdir}/3.Structure/DifferentiallySplicingGene;" \
+                  "mkdir -p {outdir}/3.Structure/GeneFusion;" \
+                  "mkdir -p {outdir}/3.Structure/NovelTranscript;" \
+                  "mkdir -p {outdir}/3.Structure/SnpIndel;" \
+                  "mkdir -p {outdir}/3.Structure/GeneFusion;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/DEGList;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/DEGVenn;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/GeneOntolotyEnrichment;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/HierarchicalCluster;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/KeggPathwayEnrichment;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/PHI;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/PRG;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/PPI;" \
+                  "mkdir -p {outdir}/4.Quantify/DifferentiallyExpressedGene/TFprediction;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/CorrelationHeatmap;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/GeneExpression;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/Clustering_Mfuzz;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/HclusterTree;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/PCA;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/ReadsCoverage;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/ReadsRandom;" \
+                  "mkdir -p {outdir}/4.Quantify/GeneExpression/VennDiagram;" \
+                  "cp {filteroutdir}/*/*.filter.stat.xls {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.RawReadsClass.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.base.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/*/*.qual.png {outdir}/1.CleanData/;" \
+                  "cp {filteroutdir}/FilterSummary.xls {outdir}/1.CleanData/;" \
+                  "cp {alignmentoutdir}/GenomeMappingSummary.xls {outdir}/2.MapStat/GenomeMapping/;" \
+                  "cp {alignmentoutdir}/*/*AddRG.Reorder.Sort.bam {alignmentoutdir}/*/*AddRG.Reorder.Sort.bam.bai {outdir}/2.MapStat/GenomeMapping/;" \
+                  "cp {noveloutdir}/Prediction/{{NovelTranscriptSummary.xls,novel_coding_transcript.fa}} {outdir}/3.Structure/NovelTranscript/;" \
+                  "cp {snpindeloutdir}/*/{{*.snp.vcf,*.indel.vcf,*.annot.xls,*.annot.stat.pdf,*.annot.stat.png }} {outdir}/3.Structure/SnpIndel/;" \
+                  "cp {snpindeloutdir}/{{combine.snp.vcf,combine.indel.vcf,snp_population.xlsx}} {outdir}/3.Structure/SnpIndel/;" \
+                  "cp {geneexpoutdir}/*/{{*.Bowtie2Gene.MapReadsStat.xls,*.gene.fpkm.xls,*transcript.fpkm.xls}} {outdir}/2.MapStat/GeneMapping/;" \
+                  "cp {geneexpoutdir}/*/{{*.gene.fpkm.xls,*transcript.fpkm.xls}} {outdir}/4.Quantify/GeneExpression/GeneExpression/;" \
+                  "cp {geneexpoutdir}/*/{{*ReadsCoverage.pdf *ReadsCoverage.png}} {outdir}/4.Quantify/GeneExpression/ReadsCoverage/;" \
+                  "cp {geneexpoutdir}/*/{{*ReadsRandom.pdf *ReadsRandom.png}} {outdir}/4.Quantify/GeneExpression/ReadsRandom/;" \
+                  "cp {geneexpoutdir}/{{*.pdf,*.png,AllSamples.GeneExpression.FPKM.xls,AllSamples.TranscriptExpression.FPKM.xls,GeneExpressionSummary.xls,*pdf,*png}} {outdir}/4.Quantify/GeneExpression/GeneExpression/;" \
+                  "cp {geneexpoutdir}/GeneExpression/CorrelationHeatmap/* {outdir}/4.Quantify/GeneExpression/CorrelationHeatmap/;" \
+                  "cp {geneexpoutdir}/GeneExpression/HclusterTree/* {outdir}/4.Quantify/GeneExpression/HclusterTree/;" \
+                  "cp {genediffexpoutdir}/*/*GeneDiffExp*xls {genediffexpoutdir}/*/*.MA-plot.* {genediffexpoutdir}/*/*.Scatter-plot.* {genediffexpoutdir}/*/*.Volcano-plot.* {outdir}/4.Quantify/DifferentiallyExpressedGene/DEGList;" \
+                  "cp {genediffspliceoutdir}/DifferentiallySplicingGene {outdir}/3.Structure/DifferentiallySplicingGene;" \
+                  "cp {tfoutdir}/{{*pdf,*png,*xls}} {outdir}/4.Quantify/DifferentiallyExpressedGene/TFprediction;" \
+                  "cp {goenrichmentoutdir}/* {outdir}/4.Quantify/DifferentiallyExpressedGene/GeneOntolotyEnrichment;" \
+                  "cp {pathwayenrichmentoutdir}/{{*.xls,*.htm,*.pdf,*.png,*.path,*map}} {outdir}/4.Quantify/DifferentiallyExpressedGene/KeggPathwayEnrichment;" \
+                  "cp {ppioutdir}/{{*.network.pdf,*.network.png,*.network.relation.txt}} {outdir}/4.Quantify/DifferentiallyExpressedGene/PPI;" \
+                  "cp {genefusionoutdir}/*/{{*.final.*,*.GeneFusion.png}} {outdir}/3.Structure/GeneFusion;" \
+                  "cp {phioutdir}/Unigene2PHI.result.xls {outdir}/4.Quantify/DifferentiallyExpressedGene/PHI;" \
+                  "cp {prgoutdir}/Unigene2PRG.result.xls {outdir}/4.Quantify/DifferentiallyExpressedGene/PRG;" \
+                  "cp {circosoutdir}/*/{{*.circos.png ,*.circos.svg}} {outdir}/3.Structure/Circos;" \
+                  "cp {clusteroutdir}/*/*{{*.cluster.xls,*.membership.xls,*.mfuzz.plot.pdf,*.mfuzz.plot.png}} {outdir}/4.Quantify/GeneExpression/Clustering_Mfuzz;".format(
+            filteroutdir=outd+"/Filter_SOAPnuke",
+            alignmentoutdir=outd+"/GenomeMapping_HISAT",
+            noveloutdir = outd+"/NovelTr_Cuffcompare",
+            snpindeloutdir=outd+"/SnpIndel_GATK",
+            geneexpoutdir=outd+"/GeneExp",
+            genediffexpoutdir=outd+"/GeneDiffExp_Allin",
+            genediffspliceoutdir=outd+"/GeneDiffSplice",
+            goenrichmentoutdir=outd+"/GO_Hypergeometric/GO",
+            pathwayenrichmentoutdir=outd+"/Pathway_Hypergeometric/KEGG",
+            ppioutdir=outd+"/PPI_Interaction",
+            tfoutdir=outd+"/TFpredict",
+            phioutdir=outd+"/PHI_Blastx",
+            prgoutdir=outd+"/PRG_Blastx",
+            circosoutdir=outd+"/CircosFig",
+            genefusionoutdir=outd+"/GeneFusion_SOAPfuse",
+            clusteroutdir=outd+"/Clustering_Mfuzz",
+            outdir=self.outdir
+        )
+        cmd.append(cpshell)
+        return cmd,output
+
+    def makedefault(self, inputfq):
+        input=[]
+        output=[]
+        default={
+            'input': input,
+            'parameter': self.parameter,
+            'program': self.program,
+            'resource': "0.5G,1CPU",
+            'output': output
+        }
+        return default
+
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
@@ -2592,15 +2697,19 @@ class interface(common):
                     astepo.outdir = outdir +"/"+astepo.outdir
                     default = astepo.makedefault(self.fqList)
                     tmpcmd,tmpout = astepo.makeCommand(default['input'])
-                    job=[]
+                    print (step +" start")
                     for i in range(len(tmpcmd)):
                         runcmdlist = tmpcmd[i].split("\n")
-                        for j in range(len(runcmdlist)):
-                            localcommand = runcmdlist[j]
-                            submit = subprocess.Popen(localcommand,shell=True,stderr=subprocess.PIPE,stdout=subprocess.PIPE,universal_newlines=True)
-                            job.append(submit)
-                        for n in job:
-                            n.wait()
+                        processNum=len(runcmdlist)
+                        realp = math.ceil(processNum/2)
+                        with Pool(realp) as p:
+                            for j in range(len(runcmdlist)):
+                                p.apply_async(run_cmd,args=(runcmdlist[j],))
+                            print("Waiting for all subprocess done...")
+                            p.close()
+                            p.join()
+                            print ("All subprocess done")
+                    print (step + " finish")
         except IOError as e:
             raise e
 

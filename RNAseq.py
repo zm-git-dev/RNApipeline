@@ -463,7 +463,7 @@ class genediffexp(common):
         self.parameter={}
         self.program="DEGseq,DEseq2,EBseq,NOIseq,PossionDis"
         self.scriptbin="/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNAseq/GeneDiffExp"
-        self.outdir="RNAseq/GeneDiffExp_Allin/"
+        self.outdir="RNAseq/GeneDiffExp_Allin"
 
     def makeCommand(self, inputfq):
         gxp = geneexp()
@@ -478,7 +478,7 @@ class genediffexp(common):
 
         deg_methods = self.program.split(',')
 
-        explist = self.outdir + "ExpList.txt"
+        explist = self.outdir + "/ExpList.txt"
         with open(explist, 'w') as exp:
             for Sample, GeneExp in ExpDict.items():
                 exp.write(Sample + '\t' + GeneExp + '\n')
@@ -486,7 +486,7 @@ class genediffexp(common):
         for type in deg_methods:
             if type == "DEGseq":
                 os.makedirs(self.outdir + '/DEGseq', mode=0o755, exist_ok=True)
-                diffcompare = self.outdir + "DEGseq/diffCompare"
+                diffcompare = self.outdir + "/DEGseq/diffCompare"
                 with open(diffcompare, 'w') as diffcomparelist:
                     compare_groups = self.parameter["DEGseq_VS"].split(',')
                     for single_group in compare_groups:
@@ -509,7 +509,7 @@ class genediffexp(common):
                     GeneDiffExpBin="/ldfssz1/ST_BIGDATA/USER/yueyao/bin",	#modify the DEGseq.pl by yueyao
                     CompareList=CompareList,
                     deg_para=self.parameter["DEGseq_Filter"],
-                    outdir=self.outdir + "DEGseq",
+                    outdir=self.outdir + "/DEGseq",
                     diffcom=diffcompare
                 )
 
@@ -619,7 +619,7 @@ class genediffexp(common):
                     GeneDiffExpBin=self.scriptbin,
                     CompareList=CompareList,
                     deg_para=self.parameter["PossionDis_Filter"],
-                    outdir=self.outdir + 'PossionDis'
+                    outdir=self.outdir + '/PossionDis'
                 )
         cmd.append(degshell)
         return cmd, output
@@ -1058,7 +1058,7 @@ class preresult(common):
         super(preresult, self).__init__()
         self.parameter = ""
         self.program=""
-        self.outdir = "RNAseq/BGI_result"
+        self.outdir = "BGI_result"
     def makeCommand(self, inputfq):
         outd = self.outdir.replace("/BGI_result", "")
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
@@ -1117,8 +1117,8 @@ class preresult(common):
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        # self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"],["preresult"]]
-        self.step = [["preresult"]]
+        self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
+        # self.step = [["preresult"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
