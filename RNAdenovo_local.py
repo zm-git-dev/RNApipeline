@@ -9,7 +9,7 @@ import sys
 import subprocess
 import math
 from multiprocessing import Pool
-
+import argparse
 from DataBasePath import DataBasePath
 from SoftWare import SoftWare
 
@@ -1978,11 +1978,16 @@ class preresult(common):
             'output': output
         }
         return default
+def run_cmd(cmd):
+    print('Run cmd %s' % cmd)
+    submit = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
+                              universal_newlines=True)
+    submit.communicate()
 
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["filter"],["alignment"],["geneexp"],["genediffexp","wgcna"],["goenrichment","pathwayenrichment"]]
+        self.step = [["filter"], ["trinity_assemble"], ["geneexp","annotation","cds_predict","ssr","snp"], ["genediffexp"], ["goenrichment", "pathwayenrichment","ppi","tf"],["preresult"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
