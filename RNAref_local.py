@@ -2688,7 +2688,7 @@ class interface(common):
         super(interface,self).__init__()
         self.step = [["filter"], ["alignment"], ["novel_tr"], ["genediffsplice", "snpindel", "geneexp"],
                      ["genediffexp", "cluster"],
-                     ["tf", "ppi", "goenrichment", "pathwayenrichment", "genefusion", "phi", "prg"], ["circos"],["presult"]]
+                     ["tf", "ppi", "goenrichment", "pathwayenrichment", "genefusion", "phi", "prg"], ["circos"],["preresult"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
