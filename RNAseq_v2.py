@@ -1061,9 +1061,9 @@ class preresult(common):
         super(preresult, self).__init__()
         self.parameter = ""
         self.program=""
-        self.outdir = "RNAseq/BGI_result"
+        self.outdir = "BGI_result"
     def makeCommand(self, inputfq):
-        outd = self.outdir.replace("/BGI_result", "")
+        outd = self.outdir.replace("BGI_result", "RNAseq")
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/2.MapStat", mode=0o755, exist_ok=True)

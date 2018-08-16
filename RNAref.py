@@ -463,7 +463,7 @@ class novel_tr(common):
                                    "perl {scriptbin}/blast_m7_m8.pl -input \"{outdir}/Annotation/fasta/*.blast.nr\" -output {outdir}/Annotation/novel.nr.m8;" \
                                    "perl {scriptbin}/getNrDesc.pl -input {outdir}/Annotation/novel.nr.m8 -rank 1 -nr {nr_db} -output {outdir}/Annotation/novel.nr.desc\n" \
                                    "cat {outdir}/Annotation/fasta/novel_coding_transcript.fa*.blast.kegg >{outdir}/Annotation/novel.kegg;" \
-                                   "perl {scriptbin}blast2ko.pl -input {outdir}/Prediction/novel_coding_transcript.fa -output {outdir}/Annotation/novel.ko -blastout {outdir}/Annotation/novel.kegg -kegg {kegg_db};".format(
+                                   "perl {scriptbin}/blast2ko.pl -input {outdir}/Prediction/novel_coding_transcript.fa -output {outdir}/Annotation/novel.ko -blastout {outdir}/Annotation/novel.kegg -kegg {kegg_db};".format(
             outdir=self.outdir,
             scriptbin=self.scriptbin,
             obo=dbclass.OBO,
@@ -1622,7 +1622,7 @@ class goenrichment(common):
         deg.outdir = self.outdir.replace("GO_Hypergeometric/GO", "GeneDiffExp_Allin")
         GeneDiffExpFilter = inputfq[0]
         novel_g2t=inputfq[1]
-        novel_go=inputfq[2].split(".")[0]
+        novel_go = os.path.dirname(inputfq[2]) + "/novel"
 
         self.parameter["Annotation_dbClass"]=self.species["RNAref"][1]
 
@@ -1644,10 +1644,8 @@ class goenrichment(common):
         GODict={}
         go_shell=""
 
-        out_dir=self.outdir+"/GO"
         go_tmpdir=self.outdir+"/tmp_file"
         os.makedirs(go_tmpdir, mode=0o755, exist_ok=True)
-        os.makedirs(out_dir,mode=0o755, exist_ok=True)
         go_shell+="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH;" \
                       "perl {scriptbin}/merge_gene2tr.pl {novel_g2t},{gene2tr} {tmpdir}/gene2tr;" \
                       "perl {scriptbin}/merge_go.pl {tmpdir}/gene2tr {novel_go},{go_prefix} {tmpdir}/species;".format(
@@ -2578,7 +2576,7 @@ class preresult(common):
         self.program=""
         self.outdir = "BGI_result"
     def makeCommand(self, inputfq):
-        outd = self.outdir.replace("/BGI_result", "")
+        outd = self.outdir.replace("BGI_result", "RNAref")
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/2.MapStat", mode=0o755, exist_ok=True)

@@ -308,7 +308,7 @@ class annotation(common):
             outdir=self.outdir
         )
 
-
+        tmp_out=[]
         for db_val in db_list:
             if db_val == "nt":
                 nt_path = self.outdir + '/nt'
@@ -330,6 +330,7 @@ class annotation(common):
                     scriptbin=self.scriptbin
                 )
                 output.append(self.outdir+"/All-Unigene.fa.blast.nt.xls")
+                tmp_out.append(self.outdir + "/All-Unigene.fa.blast.nr.xls")
                 stat_cmd += " -nt "+self.outdir+"/All-Unigene.fa.blast.nt.xls "
             if db_val == "nr":
                 nr_path = self.outdir + '/nr'
@@ -383,6 +384,7 @@ class annotation(common):
                     outdir=self.outdir
                 )
                 output.append(self.outdir + "/All-Unigene.fa.blast.swissprot.xls")
+                tmp_out.append(self.outdir + "/All-Unigene.fa.blast.swissprot.xls")
                 stat_cmd += " -swissprot " + self.outdir + "/All-Unigene.fa.blast.swissprot.xls "
             if db_val == "kegg":
                 kegg_path=self.outdir+'/kegg'
@@ -421,6 +423,7 @@ class annotation(common):
                     kegg_path=kegg_path
                 )
                 output.append(self.outdir + "/All-Unigene.fa.blast.kegg.xls")
+                tmp_out.append(self.outdir + "/All-Unigene.fa.blast.kegg.xls")
                 stat_cmd += " -kegg " + self.outdir + "/All-Unigene.fa.blast.kegg.xls "
             if db_val == "kog":
                 kog_path=self.outdir+'/kog'
@@ -450,6 +453,7 @@ class annotation(common):
                     kog_id=dbclass.KOG_GENEID
                 )
                 output.append(self.outdir + "/All-Unigene.fa.blast.kog.xls")
+                tmp_out.append(self.outdir + "/All-Unigene.fa.blast.kog.xls")
                 stat_cmd += " -cog " + self.outdir + "/All-Unigene.fa.blast.kog.xls "
             if db_val == "cog":
                 cog_path=self.outdir+'/cog'
@@ -479,6 +483,7 @@ class annotation(common):
                     cog_id=dbclass.COG_GENEID
                 )
                 output.append(self.outdir + "/All-Unigene.fa.blast.cog.xls")
+                tmp_out.append(self.outdir + "/All-Unigene.fa.blast.cog.xls")
                 stat_cmd += " -cog " + self.outdir + "/All-Unigene.fa.blast.cog.xls "
             if db_val == "go":
                 go_path=self.outdir+'/go'
@@ -505,8 +510,11 @@ class annotation(common):
                 output.append(self.outdir + "/All-Unigene.fa.Gene2GO.xls")
                 stat_cmd += " -go " + self.outdir + "/All-Unigene.fa.Gene2GO.xls -obo " + dbclass.OBO
 
-        tmp_infile=",".join(output)
-        tmp_name=",".join(db_list)
+        tmpdb = db_list
+        tmpdb.remove("nt")
+        tmpdb.remove("go")
+        tmp_infile=",".join(tmp_out)
+        tmp_name=",".join(tmpdb)
 
         os.makedirs(self.outdir+"/Venny", mode=0o755, exist_ok=True)
         stat_cmd += " -outxls {outdir}/annotation.xls -outstat {outdir}/annotation_stat.xls;" \
@@ -1896,7 +1904,7 @@ class preresult(common):
         self.program=""
         self.outdir = "BGI_result"
     def makeCommand(self, inputfq):
-        outd = self.outdir.replace("/BGI_result", "")
+        outd = self.outdir.replace("BGI_result", "RNAdenovo")
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/2.Assembly", mode=0o755, exist_ok=True)
@@ -1928,6 +1936,8 @@ class preresult(common):
                   "cp {trinityoutdir}/Unigene.fa {outdir}/2.Assembly;" \
                   "cp {trinityoutdir}/All-Unigene.gene2mark {outdir}/2.Assembly;" \
                   "cp {annotationoutdir}/{{*xls,*pdf,*png,*path,*.htm,*.ko,*map}} {outdir}/3.Annotation/;" \
+                  "cp -r {annotationoutdir}/All-Unigene.fa_map {outdir}/3.Annotation/;" \
+                  "cp -r {annotationoutdir}/Venny {outdir}/3.Annotation/;" \
                   "cp {ssroutdir}/{{All-Unigene.misa.xls,All-Unigene.statistics.xls,SSR_statistics.png,SSR_statistics.xls}} {outdir}/4.Structure/SSR/;" \
                   "cp {cdsoutdir}/{{PredictSummary.xls,All-Unigene.fa.transdecoder.cds*,All-Unigene.fa.transdecoder.pep,All-Unigene.fa.transdecoder.gff3,All-Unigene.fa.transdecoder.bed,All-Unigene.cds.length.png,All-Unigene.cds.length.pdf}} {outdir}/4.Structure/CDSpredict/CDSpredict/;" \
                   "cp {geneexpoutdir}/*/*.gene.fpkm.xls {outdir}/5.Quantify/GeneExpression/;" \

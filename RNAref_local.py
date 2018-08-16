@@ -466,7 +466,7 @@ class novel_tr(common):
                                    "perl {scriptbin}/blast_m7_m8.pl -input \"{outdir}/Annotation/fasta/*.blast.nr\" -output {outdir}/Annotation/novel.nr.m8;" \
                                    "perl {scriptbin}/getNrDesc.pl -input {outdir}/Annotation/novel.nr.m8 -rank 1 -nr {nr_db} -output {outdir}/Annotation/novel.nr.desc\n" \
                                    "cat {outdir}/Annotation/fasta/novel_coding_transcript.fa*.blast.kegg >{outdir}/Annotation/novel.kegg;" \
-                                   "perl {scriptbin}blast2ko.pl -input {outdir}/Prediction/novel_coding_transcript.fa -output {outdir}/Annotation/novel.ko -blastout {outdir}/Annotation/novel.kegg -kegg {kegg_db};".format(
+                                   "perl {scriptbin}/blast2ko.pl -input {outdir}/Prediction/novel_coding_transcript.fa -output {outdir}/Annotation/novel.ko -blastout {outdir}/Annotation/novel.kegg -kegg {kegg_db};".format(
             outdir=self.outdir,
             scriptbin=self.scriptbin,
             obo=dbclass.OBO,
@@ -1381,12 +1381,12 @@ class genediffsplice(common):
 
         asstat_shell="perl {scriptbin}/AS_statistics.pl -indir {result_dir} -outdir {result_dir}".format(
             scriptbin=self.scriptbin,
-            result_dir=self.outdir + "DifferentiallySplicingGene"
+            result_dir=self.outdir + "/DifferentiallySplicingGene"
         )
         cmd.append(rmats_shell)
         cmd.append(dsg_wego_shell)
         cmd.append(asstat_shell)
-        output.append(self.outdir + "DifferentiallySplicingGene/AsSummary.xls")
+        output.append(self.outdir + "/DifferentiallySplicingGene/AsSummary.xls")
         return cmd,output
 
     def makedefault(self,inputfq):
@@ -1414,7 +1414,7 @@ class genediffsplice(common):
         input.append(novel_gtf)
         input.append(novel_g2t)
         input.append(novel_go)
-        output.append(self.outdir + "DifferentiallySplicingGene/AsSummary.xls")
+        output.append(self.outdir + "/DifferentiallySplicingGene/AsSummary.xls")
         dic_gro={}
         for i_key,line in self.fqLink.items():
             if line[0] == line[1]:
@@ -1625,8 +1625,7 @@ class goenrichment(common):
         deg.outdir = self.outdir.replace("GO_Hypergeometric/GO", "GeneDiffExp_Allin")
         GeneDiffExpFilter = inputfq[0]
         novel_g2t=inputfq[1]
-        novel_go=inputfq[2].split(".")[0]
-
+        novel_go=os.path.dirname(inputfq[2])+"/novel"
         self.parameter["Annotation_dbClass"]=self.species["RNAref"][1]
 
         if self.parameter["Annotation_dbClass"] == "pl":
@@ -1647,10 +1646,8 @@ class goenrichment(common):
         GODict={}
         go_shell=""
 
-        out_dir=self.outdir+"/GO"
         go_tmpdir=self.outdir+"/tmp_file"
         os.makedirs(go_tmpdir, mode=0o755, exist_ok=True)
-        os.makedirs(out_dir,mode=0o755, exist_ok=True)
         go_shell+="export PATH=/ldfssz1/ST_BIGDATA/PMO/SOFTWARE/RNA_SoftWare/perl-V5/bin:$PATH;" \
                       "perl {scriptbin}/merge_gene2tr.pl {novel_g2t},{gene2tr} {tmpdir}/gene2tr;" \
                       "perl {scriptbin}/merge_go.pl {tmpdir}/gene2tr {novel_go},{go_prefix} {tmpdir}/species;".format(
@@ -2582,7 +2579,7 @@ class preresult(common):
         self.program=""
         self.outdir = "BGI_result"
     def makeCommand(self, inputfq):
-        outd = self.outdir.replace("/BGI_result", "")
+        outd = self.outdir.replace("BGI_result", "RNAref")
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/1.CleanData", mode=0o755, exist_ok=True)
         os.makedirs(self.outdir+"/2.MapStat", mode=0o755, exist_ok=True)
@@ -2686,9 +2683,7 @@ def run_cmd(cmd):
 class interface(common):
     def __init__(self):
         super(interface,self).__init__()
-        self.step = [["filter"], ["alignment"], ["novel_tr"], ["genediffsplice", "snpindel", "geneexp"],
-                     ["genediffexp", "cluster"],
-                     ["tf", "ppi", "goenrichment", "pathwayenrichment", "genefusion", "phi", "prg"], ["circos"],["preresult"]]
+        self.step = [["goenrichment"]]
         self.input = "%s/workflow.json" % (self.outdirMain)
         self.output = "%s/workflow.json" % (self.outdirMain)
 
