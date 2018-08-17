@@ -1988,6 +1988,7 @@ class preresult(common):
             'output': output
         }
         return default
+
 def run_cmd(cmd):
     print('Run cmd %s' % cmd)
     submit = subprocess.Popen(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE,
