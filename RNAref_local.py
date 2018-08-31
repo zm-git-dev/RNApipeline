@@ -1370,7 +1370,7 @@ class genediffsplice(common):
                              " {outdir}/{tmpdir}/annot/annot -goclass {goclass} -outdir {result_dir}/{tmpdir} -name {tmpdir};".format(
                 scriptbin=self.scriptbin,
                 outdir=self.outdir,
-                result_dir=self.outdir+"DifferentiallySplicingGene",
+                result_dir=self.outdir+"/DifferentiallySplicingGene",
                 para=self.parameter["rMATS_Filter"],
                 tmpdir=tmpdir,
                 goclass=database.GOCLASS,

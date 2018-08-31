@@ -2007,9 +2007,7 @@ class genefusion(common):
         soapfuse_shell=""
         cmd=[]
         output=[]
-        spe=""
-        for spe in self.species.keys():
-            pass
+        spe=self.species["RNAref"][0]
         if spe == "human" or spe== "Homo_sapiens" or spe == "mouse" or spe == "rat" or spe == "OryzaSativa" or spe == "arabidopsis":
             genefusedic={}
             for SampleID, Cleandata in inputfq[0]:
@@ -2053,9 +2051,7 @@ class genefusion(common):
         input=[]
         input.append(CleanDataDict)
         output=[]
-        spe=""
-        for spe in self.species.keys():
-            pass
+        spe=self.species["RNAref"][0]
         if spe == "human" or spe == "Homo_sapiens" or spe == "mouse" or spe == "rat" or spe == "OryzaSativa" or spe == "arabidopsis":
             genefusedic={}
             for SampleID, Cleandata in CleanDataDict.items():
