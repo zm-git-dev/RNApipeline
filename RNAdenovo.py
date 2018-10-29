@@ -213,7 +213,7 @@ class trinity_assemble(common):
         cmd+="cd {outdir};" \
              "{trinity} {parameter} --left {fq1_list} --right {fq2_list} --output {outdir}/Trinity; " \
              "ln -s {outdir}/Trinity/Trinity.fasta Unigene.fa; " \
-             "/ldfssz1/ST_BIGDATA/USER/yueyao/bin/miniconda2/bin/python {scriptbin}/extract_longest_isform.py Unigene.fa All ;" \
+             "/ldfssz1/ST_BIGDATA/USER/yueyao/bin/miniconda2/bin/python {scriptbin}/extract_longest_isform.py Unigene.fa All {outdir};" \
              "perl {scriptbin}/fishInWinter.pl -bf table -ff fasta All_Unigene_id.txt Unigene.fa >Temp.Unigene.fa; " \
              "perl -lane 'if(/(>.*c\d+_g\d+)(_i\d+)\slen/){{print $1}}else{{print}}' Temp.Unigene.fa >All-Unigene.fa; " \
              "perl {scriptbin}/get_Trinity_gene_to_trans_map.pl Unigene.fa >All-Unigene.gene2mark;" \
@@ -636,7 +636,11 @@ class cds_predict(common):
         cmd=[]
         os.makedirs(self.outdir, mode=0o755, exist_ok=True)
         Unigene=inputfq
-        cds_shell="cd {0};/usr/bin/perl {1}/TransDecoder.LongOrfs -t {2}; ".format(self.outdir,self.transdecoder,Unigene)
+        cds_shell="ln -s {Unigene} {outdir}/All-Unigene.fa;cd {outdir};/usr/bin/perl {cdspredict}/TransDecoder.LongOrfs -t {outdir}/All-Unigene.fa; ".format(
+            Unigene=Unigene,
+            outdir=self.outdir,
+            cdspredict=self.transdecoder
+        )
         self.parameter["Annotation_dbClass"]=self.species["RNAdenovo"][0]
 
         if self.parameter["Annotation_dbClass"] == "pl":
